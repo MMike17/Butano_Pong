@@ -10,11 +10,6 @@
 #define GAME_STATE_H
 
 #include "bn_string_view.h"
-#include "bn_array.h"
-
-/* ─── Function Prototypes ─────────────────────────────────────────────── */
-
-const bn::array<bn::string_view, 3> GameStateStrings[];
 
 enum GameState
 {
@@ -22,5 +17,7 @@ enum GameState
 	Game = 1,
 	Result = 2
 };
+
+extern const bn::array<bn::string_view, 3> GameStateStrings{"Intro", "Game", "Result"};
 
 #endif /* GAME_STATE_H */
