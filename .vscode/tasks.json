@@ -7,7 +7,7 @@
             "command": "cmd.exe",
             "args": [
                 "/c",
-                "for /f %a in (\"%cd%\") do set projectName=%~nxa && echo Building %~nxa && make -j14 && echo. && echo Launching %~nxa && \"C:\\Program Files\\mGBA\\mGBA.exe\" -f \"%cd%\\%~nxa.gba\""
+                "cls && for /f %a in (\"%cd%\") do set projectName=%~nxa && echo Building %~nxa && make -j14 && echo. && echo Launching %~nxa && \"C:\\Program Files\\mGBA\\mGBA.exe\" -f \"%cd%\\%~nxa.gba\""
             ],
             "group": {
                 "kind": "build",
@@ -28,7 +28,7 @@
 		"command": "cmd.exe",
 		"args": [
 			"/c",
-			"make -j14 && @echo off && color 0A && echo Finished compiling assets"
+			"cls && make -j14 && @echo off && color 0A && echo Finished compiling assets"
 		],
 		"group": 
 		{
