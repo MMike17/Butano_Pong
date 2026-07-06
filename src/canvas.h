@@ -19,5 +19,6 @@
 
 int get_canvas_point(float percent, bool is_x);
 void place_on_canvas(bn::sprite_ptr sprite, float x_percent, float y_percent);
+bn::fixed_point get_canvas_pos(float x_percent, float y_percent);
 
 #endif /* CANVAS_H */

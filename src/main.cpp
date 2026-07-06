@@ -1,31 +1,46 @@
 // butano imports
-#include "bn_core.h"
-#include "bn_keypad.h"
-#include "bn_sprite_text_generator.h"
-#include "bn_log.h"
+#include <bn_core.h>
+#include <bn_display.h>
+#include <bn_sprite_ptr.h>
+#include <bn_keypad.h>
+#include <bn_sprite_text_generator.h>
+#include <bn_log.h>
+#include <bn_bg_palettes.h>
+#include <bn_keypad.h>
+#include <bn_optional.h>
 
 // custom imports
 #include "main.h"
 #include "canvas.h"
 
 // sprite imports
-#include "bn_sprite_items_common_fixed_8x8_font.h"
+#include <bn_sprite_items_common_fixed_8x8_font.h>
+#include <bn_sprite_items_paddle.h>
+#include <bn_sprite_items_ball.h>
+
+const int PLAYER_SPEED{1};
 
 GameState state;
 bn::vector<bn::sprite_ptr, 32> text_buffer;
+bn::optional<bn::sprite_ptr> player_palette;
+bn::optional<bn::sprite_ptr> ai_palette;
+bn::optional<bn::sprite_ptr> ball;
+bn::fixed_point player_pos;
+bn::fixed_point ai_pos;
+bn::fixed_point ball_pos;
 
 void init()
 {
 	state = GameState::Intro;
 	bn::core::init();
+
+	// sets background color for debug
+	bn::bg_palettes::set_transparent_color(bn::color(1, 1, 1));
 }
 
 int main()
 {
 	init();
-
-	// sets background color
-	// bn::bg_palettes::set_transparent_color(bn::color(16, 16, 16));
 
 	while (true)
 	{
@@ -44,7 +59,8 @@ void state_update()
 		break;
 
 	case GameState::Game:
-		// TODO : game loop here
+		game_display();
+		game_interraction();
 		break;
 
 	case GameState::Result:
@@ -63,6 +79,11 @@ void switch_to_state(GameState newState)
 	{
 	case GameState::Intro:
 		text_buffer = bn::vector<bn::sprite_ptr, 32>();
+
+		player_pos = get_canvas_pos(0.1f, 0.5f);
+		ai_pos = get_canvas_pos(0.9f, 0.5f);
+		ball_pos = get_canvas_pos(0.5f, 0.5f);
+
 		break;
 
 	default: // this should never happen
@@ -101,4 +122,27 @@ void intro_interraction()
 {
 	if (bn::keypad::held(bn::keypad::key_type::START))
 		switch_to_state(GameState::Game);
+}
+
+void game_display()
+{
+	if (!player_palette)
+		player_palette = bn::sprite_items::paddle.create_sprite_optional(player_pos);
+
+	if (!ai_palette)
+		ai_palette = bn::sprite_items::paddle.create_sprite_optional(ai_pos);
+
+	if (!ball)
+		ball = bn::sprite_items::ball.create_sprite_optional(ball_pos);
+}
+
+void game_interraction()
+{
+	if (bn::keypad::held(bn::keypad::key_type::UP))
+		player_pos.set_y(player_pos.y() - PLAYER_SPEED);
+
+	if (bn::keypad::held(bn::keypad::key_type::DOWN))
+		player_pos.set_y(player_pos.y() + PLAYER_SPEED);
+
+	player_palette.value().set_position(player_pos);
 }
