@@ -33,7 +33,7 @@
 #---------------------------------------------------------------------------------------------------------------------
 TARGET      	:=  $(notdir $(CURDIR))
 BUILD       	:=  build
-LIBBUTANO   	:=  C:\Data\Projects\GameDev\Butano\butano-20.2.0\butano
+LIBBUTANO   	:=  C:\Data\Projects\GameDev\Butano\butano-21.7.1\butano
 PYTHON      	:=  python
 SOURCES     	:=  src
 INCLUDES    	:=  include

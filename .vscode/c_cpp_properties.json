@@ -1,23 +1,35 @@
 {
+	"env": {
+		"libButanoIncludePath": "C:/Data/Projects/GameDev/Butano/butano-21.7.1/butano/include",
+		"commonIncludePaths": [
+            "${libButanoIncludePath}",
+            "${libButanoIncludePath}/../hw/3rd_party/*/include",
+            "${workspaceFolder}/**",
+            "${workspaceFolder}/build"
+        ],
+        "commonDefines": [
+            "__GBA__",
+            "BN_AUDIO_BACKEND_MAXMOD",
+            "BN_DMG_AUDIO_BACKEND_DEFAULT",
+            "BN_STACKTRACE",
+            "BN_CFG_PROFILER_ENABLED=true"
+        ]
+	},
     "configurations": [
         {
-            "name": "Win32",
+            "name": "Butano",
             "includePath": [
-                "${workspaceFolder}/**",
-                "${workspaceFolder}/build",
-                "C:\\Data\\Projects\\GameDev\\Butano\\butano-20.2.0\\butano\\**",
-                "C:\\Data\\Projects\\GameDev\\Butano\\butano-20.2.0\\butano"
+				"${env:commonIncludePaths}"
             ],
             "defines": [
-                "_DEBUG",
-                "UNICODE",
-                "_UNICODE"
+                "${env:commonDefines}",
+                "BN_TOOLCHAIN_TAG=\"DKA\""
             ],
             "windowsSdkVersion": "10.0.26100.0",
-            "compilerPath": "cl.exe",
-            "cStandard": "c11",
-            "cppStandard": "c++11",
-            "intelliSenseMode": "windows-msvc-x64"
+            "compilerPath": "C:/devkitPro/devkitARM/bin/arm-none-eabi-gcc.exe",
+            "cStandard": "c23",
+            "cppStandard": "c++23",
+            "intelliSenseMode": "windows-gcc-arm"
         }
     ],
     "version": 4
