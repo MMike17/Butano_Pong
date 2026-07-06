@@ -19,6 +19,7 @@ This is a learning project, things will be messy.
 - `Canvas` class to position objects on screen is directly copied from **UGUI** systems (except I keep the center reference point)
 	- feed it screen position percent as float
 	- split into point (x or y) and position (x and y)
+- Replace `float` usage with butano's `bn::fixed` (from **butano docs** "poor man's float")
 
 ### Use Butano's built-in classes
 
