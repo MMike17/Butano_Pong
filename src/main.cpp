@@ -19,6 +19,7 @@
 #include <bn_sprite_items_ball.h>
 
 const int PLAYER_SPEED{1};
+const int PADDLE_WIDTH{4};
 
 GameState state;
 bn::vector<bn::sprite_ptr, 32> text_buffer;
@@ -75,15 +76,11 @@ void state_update()
 
 void switch_to_state(GameState newState)
 {
+	// cleanup
 	switch (state)
 	{
 	case GameState::Intro:
 		text_buffer = bn::vector<bn::sprite_ptr, 32>();
-
-		player_pos = get_canvas_pos(0.1f, 0.5f);
-		ai_pos = get_canvas_pos(0.9f, 0.5f);
-		ball_pos = get_canvas_pos(0.5f, 0.5f);
-
 		break;
 
 	default: // this should never happen
@@ -91,6 +88,26 @@ void switch_to_state(GameState newState)
 	}
 
 	state = newState;
+
+	// init
+	switch (newState)
+	{
+	case GameState::Game:
+	{
+		const int paddle_offset{bn::sprite_items::paddle.shape_size().width() / 2 - PADDLE_WIDTH / 2};
+
+		player_pos = get_canvas_pos(0.1f, 0.5f);
+		player_pos.set_x(player_pos.x() + paddle_offset);
+		ai_pos = get_canvas_pos(0.9f, 0.5f);
+		ai_pos.set_x(ai_pos.x() + paddle_offset);
+		ball_pos = get_canvas_pos(0.5f, 0.5f);
+		break;
+	}
+
+	default:
+		break;
+	}
+
 	BN_LOG("Switched to state : ", GameStateStrings[newState]);
 }
 
@@ -138,6 +155,11 @@ void game_display()
 
 void game_interraction()
 {
+	// TODO : Limit paddle's position to screen
+	// TODO : Bounce ball on paddles
+	// TODO : Start game
+	// TODO : Score points
+
 	if (bn::keypad::held(bn::keypad::key_type::UP))
 		player_pos.set_y(player_pos.y() - PLAYER_SPEED);
 
