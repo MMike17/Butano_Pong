@@ -4,6 +4,7 @@ Butano Pong
 I'm remaking Pong for the GBA using Butano.\
 This is a learning project, things will be messy.
 
+
 ## Target
 
 - Full pong gameplay
@@ -11,6 +12,7 @@ This is a learning project, things will be messy.
 - Sounds
 - Results screen
 - Restart
+
 
 ## Best practices
 
@@ -30,6 +32,7 @@ This is a learning project, things will be messy.
 - Make headers for all of your .cpp files
 	- You won't have to care about functions order
 
+
 ## Tribulations
 
 ### Includes
@@ -40,3 +43,18 @@ This is a learning project, things will be messy.
 
 - Declaring bn::sprite_ptr without initializing them doesn't work, but Butano has optionals built in
 	- Declare bn::optional<> instead and assign it with bn::sprite_ptr.generate_sprite_optional
+
+
+## Tools ideas
+
+### Akashic
+
+Manages various assets references based on user defined game state.
+- User can define enum (int) to define game state and cast it to int as a way to identify assets
+- All references are cleared properly when changing game state
+
+### Display manager
+
+Helps users to place sprites on the screen.
+- User can define an offset or a new center to a sprite
+- Place objects on screen based on screen percents
