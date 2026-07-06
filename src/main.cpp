@@ -11,6 +11,7 @@
 #include <bn_math.h>
 #include <bn_random.h>
 #include <bn_fixed.h>
+#include <bn_math.h>
 
 // custom imports
 #include "main.h"
@@ -23,7 +24,7 @@
 
 const int PLAYER_SPEED{2};
 const int PADDLE_WIDTH{4};
-const int BALL_SPEED{15};
+const int BALL_SPEED{1};
 const int SCREEN_X_LIMIT{bn::display::width() / 2};
 const int SCREEN_Y_LIMIT{bn::display::height() / 2};
 const bn::sprite_font FONT(bn::sprite_items::common_fixed_8x8_font);
@@ -37,7 +38,7 @@ bn::fixed_point player_pos;
 bn::fixed_point ai_pos;
 bn::fixed_point ball_pos;
 bn::fixed_point ball_velocity;
-bn::random random; // TODO : Fix random initialization to be more random
+bn::random random;
 int paddle_y_limit;
 bool paused;
 
@@ -58,6 +59,7 @@ int main()
 	while (true)
 	{
 		state_update();
+		random.update();
 		bn::core::update();
 	}
 }
@@ -183,17 +185,16 @@ void game_logic()
 	// TODO : Bounce ball on paddles
 	// TODO : Display points
 
-	BN_LOG("paused : ", paused);
-
 	if (paused)
 	{
 		if (bn::keypad::pressed(bn::keypad::key_type::A))
 		{
-			bn::fixed random_x = random.get_fixed();
-			bn::fixed random_y = random.get_fixed();
-			bn::fixed length = random_x + random_y;
+			// normalize close to 1 is okay
+			bn::fixed random_x = random.get_fixed(-1, 1);
+			bn::fixed random_y = random.get_fixed(-1, 1);
+			bn::fixed length = bn::sqrt((random_x * random_x) + (random_y * random_y));
 
-			ball_velocity = bn::fixed_point((random_x / length) * BALL_SPEED, (random_y / length * BALL_SPEED));
+			ball_velocity = bn::fixed_point(random_x / length, -random_y / length) * BALL_SPEED;
 			paused = false;
 		}
 	}
