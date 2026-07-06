@@ -8,6 +8,7 @@
 #include <bn_bg_palettes.h>
 #include <bn_keypad.h>
 #include <bn_optional.h>
+#include <bn_math.h>
 
 // custom imports
 #include "main.h"
@@ -18,7 +19,7 @@
 #include <bn_sprite_items_paddle.h>
 #include <bn_sprite_items_ball.h>
 
-const int PLAYER_SPEED{1};
+const int PLAYER_SPEED{2};
 const int PADDLE_WIDTH{4};
 
 GameState state;
@@ -29,6 +30,7 @@ bn::optional<bn::sprite_ptr> ball;
 bn::fixed_point player_pos;
 bn::fixed_point ai_pos;
 bn::fixed_point ball_pos;
+int paddle_y_limit;
 
 void init()
 {
@@ -94,13 +96,16 @@ void switch_to_state(GameState newState)
 	{
 	case GameState::Game:
 	{
-		const int paddle_offset{bn::sprite_items::paddle.shape_size().width() / 2 - PADDLE_WIDTH / 2};
+		const bn::sprite_shape_size paddle_size{bn::sprite_items::paddle.shape_size()};
+		const int paddle_offset{paddle_size.width() / 2 - PADDLE_WIDTH / 2};
 
 		player_pos = get_canvas_pos(0.1f, 0.5f);
 		player_pos.set_x(player_pos.x() + paddle_offset);
 		ai_pos = get_canvas_pos(0.9f, 0.5f);
 		ai_pos.set_x(ai_pos.x() + paddle_offset);
 		ball_pos = get_canvas_pos(0.5f, 0.5f);
+
+		paddle_y_limit = bn::display::height() / 2 - paddle_size.height() / 2;
 		break;
 	}
 
@@ -155,7 +160,6 @@ void game_display()
 
 void game_interraction()
 {
-	// TODO : Limit paddle's position to screen
 	// TODO : Bounce ball on paddles
 	// TODO : Start game
 	// TODO : Score points
@@ -165,6 +169,9 @@ void game_interraction()
 
 	if (bn::keypad::held(bn::keypad::key_type::DOWN))
 		player_pos.set_y(player_pos.y() + PLAYER_SPEED);
+
+	player_pos.set_y(bn::min<bn::fixed>(player_pos.y(), paddle_y_limit));
+	player_pos.set_y(bn::max<bn::fixed>(player_pos.y(), -paddle_y_limit));
 
 	player_palette.value().set_position(player_pos);
 }
