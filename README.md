@@ -52,6 +52,11 @@ This is a learning project, things will be messy.
 	- don't forget to cast one of those to `bn::fixed` to get something usefull
 - You can't % by a non-integer number (`bn::fixed` for example), but you can divide the timer by your desired % value
 
+### Centralizing text display
+
+- Having a single function to display text creates time of clear issue with the text buffer
+	- clear the text buffer at the start of the update method that's going to run
+
 
 ## Tools ideas
 

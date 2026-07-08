@@ -90,7 +90,15 @@ void state_update()
 		break;
 
 	case GameState::Result:
-		// TODO : display results and reset on press A
+		text_buffer.clear();
+		display_text(get_canvas_pos(0.5f, 0.5f), player_score == 10 ? "Player wins !" : "AI wins !");
+
+		if (bn::keypad::pressed(bn::keypad::key_type::A))
+		{
+			player_score = 0;
+			ai_score = 0;
+			switch_to_state(GameState::Game);
+		}
 		break;
 
 	default:
@@ -104,12 +112,6 @@ void switch_to_state(GameState newState)
 	// cleanup
 	switch (state)
 	{
-	case GameState::Intro:
-	{
-		text_buffer.clear();
-		break;
-	}
-
 	case GameState::Game:
 	{
 		player_palette.reset();
@@ -118,7 +120,7 @@ void switch_to_state(GameState newState)
 		break;
 	}
 
-	default: // this should never happen
+	default:
 		break;
 	}
 
@@ -181,6 +183,7 @@ void intro_logic()
 void game_logic()
 {
 	// TODO : Bounce ball on paddles
+	// TODO : Bounce ball on walls
 
 	text_buffer.clear();
 	bn::string<5> score_display;
@@ -213,7 +216,6 @@ void game_logic()
 	}
 	else if (waiting_for_input)
 	{
-		text_buffer.clear();
 		display_text(get_canvas_pos(0.5f, 0.7f), "Press [A] to start the game");
 
 		if (bn::keypad::pressed(bn::keypad::key_type::A))
@@ -241,6 +243,7 @@ void game_logic()
 		player_palette.value().set_position(player_pos);
 		ball.value().set_position(ball.value().position() + ball_velocity);
 
+		// TODO : I'm not sure this is getting detected...
 		is_player_point = ball_pos.x() > SCREEN_X_LIMIT;
 
 		if (is_player_point || ball_pos.x() < -SCREEN_X_LIMIT)
