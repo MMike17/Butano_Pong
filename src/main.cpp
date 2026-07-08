@@ -60,6 +60,11 @@ bool waiting_for_input;
 bool score_anim;
 bool is_player_point;
 
+// TODO : Reset paddle pos before restart prompt
+// TODO : Fix score anim flashing player when ai scores
+// TODO : Fix error on finish game
+// TODO : move ai palette
+
 void init()
 {
 	state = GameState::Intro;
@@ -189,8 +194,6 @@ void intro_logic()
 
 void game_logic()
 {
-	// TODO : Bounce ball on paddles
-
 	text_buffer.clear();
 	bn::string<5> score_display;
 	bn::ostringstream builder{score_display};
@@ -252,8 +255,6 @@ void game_logic()
 		player_pos.set_y(bn::min<bn::fixed>(player_pos.y(), paddle_y_limit));
 		player_pos.set_y(bn::max<bn::fixed>(player_pos.y(), -paddle_y_limit));
 
-		// TODO : move ai palette
-
 		player_palette.value().set_position(player_pos);
 		ball.value().set_position(ball_pos += ball_velocity);
 		ball_collisions();
@@ -271,11 +272,17 @@ void display_text(bn::fixed_point pos, bn::string_view text)
 
 void ball_collisions()
 {
-	palette_rect.value().set_position((int)player_pos.x() - paddle_offset, (int)player_pos.y());
+	palette_rect.value().set_position((int)player_pos.x() - paddle_offset + PADDLE_WIDTH / 2, (int)player_pos.y());
 	ball_rect.value().set_position((int)ball_pos.x(), (int)ball_pos.y());
 
-	// TODO : Check for player - ball collision
-	// TODO : Check for ai - ball collision
+	if (ball_velocity.x() < 0 && palette_rect.value().intersects(ball_rect.value()))
+		ball_velocity.set_x(-ball_velocity.x());
+
+	// TODO : fix rect detection for ai ?
+	palette_rect.value().set_position((int)ai_pos.x() - PADDLE_WIDTH / 2, (int)ai_pos.y());
+
+	if (ball_velocity.x() > 0 && palette_rect.value().intersects(ball_rect.value()))
+		ball_velocity.set_x(-ball_velocity.x());
 
 	if (ball_pos.y() + BALL_SIZE / 2 >= SCREEN_Y_LIMIT || ball_pos.y() - BALL_SIZE / 2 <= -SCREEN_Y_LIMIT)
 		ball_velocity.set_y(-ball_velocity.y());
