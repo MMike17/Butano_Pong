@@ -79,3 +79,10 @@ Some kind of tool so I can describe animations and apply those animations to som
 - Animate any property proceduraly
 	- set start & end values
 	- custom procedure defined by user
+
+### Custom log tool
+
+Custom log tool similar to what I made in ArtOfRally_ModBase
+- Log at interesting places for control flow
+- Enable / disable logging easily
+- Tag logs for better readability

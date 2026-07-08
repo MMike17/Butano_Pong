@@ -24,5 +24,6 @@ void game_init(void);
 void intro_logic(void);
 void game_logic(void);
 void display_text(bn::fixed_point pos, bn::string_view text);
+void ball_collisions(void);
 
 #endif /* MAIN_H */
