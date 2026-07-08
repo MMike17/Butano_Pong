@@ -144,25 +144,10 @@ void switch_to_state(GameState newState)
 
 void intro_init()
 {
-	bn::sprite_text_generator text_generator(FONT);
-	text_generator.set_center_alignment();
 	text_buffer.clear();
-
-	text_generator.generate(
-		get_canvas_point(0.5f, true),
-		get_canvas_point(0.7f, false),
-		"Pong",
-		text_buffer);
-	text_generator.generate(
-		get_canvas_point(0.5f, true),
-		get_canvas_point(0.3f, false),
-		"Press [start]",
-		text_buffer);
-	text_generator.generate(
-		get_canvas_point(0.5f, true),
-		get_canvas_point(0.2f, false),
-		"to start the game",
-		text_buffer);
+	display_text(get_canvas_pos(0.5f, 0.7f), "Pong");
+	display_text(get_canvas_pos(0.5f, 0.3f), "Press [start]");
+	display_text(get_canvas_pos(0.5f, 0.2f), "to start the game");
 }
 
 void game_init()
@@ -197,10 +182,7 @@ void game_logic()
 {
 	// TODO : Bounce ball on paddles
 
-	bn::sprite_text_generator text_generator(FONT);
-	text_generator.set_center_alignment();
 	text_buffer.clear();
-
 	bn::string<5> score_display;
 	bn::ostringstream builder{score_display};
 	builder.append_args(player_score, " / ", ai_score);
@@ -212,7 +194,6 @@ void game_logic()
 		int value = (int)((warped_timer - (warped_timer % 1)) / 1);
 		bool show_score = value % 2 == 1; // strict sin
 
-		score_display.clear();
 		bn::string score_str = bn::to_string<4>(player_score);
 		builder.append_args(
 			player_score ? (show_score ? " " : score_str) : score_str,
@@ -232,7 +213,9 @@ void game_logic()
 	}
 	else if (waiting_for_input)
 	{
-		// TODO : Show text for key prompt
+		text_buffer.clear();
+		display_text(get_canvas_pos(0.5f, 0.7f), "Press [A] to start the game");
+
 		if (bn::keypad::pressed(bn::keypad::key_type::A))
 		{
 			// normalize close to 1 is okay
@@ -272,9 +255,12 @@ void game_logic()
 		}
 	}
 
-	text_generator.generate(
-		get_canvas_point(0.5f, true),
-		get_canvas_point(0.95f, false),
-		score_display,
-		text_buffer);
+	display_text(get_canvas_pos(0.5f, 0.95f), score_display);
+}
+
+void display_text(bn::fixed_point pos, bn::string_view text)
+{
+	bn::sprite_text_generator text_display{FONT};
+	text_display.set_center_alignment();
+	text_display.generate(pos, text, text_buffer);
 }
