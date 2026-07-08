@@ -29,7 +29,7 @@ This is a learning project, things will be messy.
 
 ### Headers
 
-- Make headers for all of your .cpp files
+- Make headers for all of your `.cpp` files
 	- You won't have to care about functions order
 
 
@@ -41,8 +41,16 @@ This is a learning project, things will be messy.
 
 ### Declarations
 
-- Declaring bn::sprite_ptr without initializing them doesn't work, but Butano has optionals built in
-	- Declare bn::optional<> instead and assign it with bn::sprite_ptr.generate_sprite_optional
+- Declaring `bn::sprite_ptr` without initializing them doesn't work, but Butano has optionals built in
+	- Declare `bn::optional<>` instead and assign it with `bn::sprite_ptr.generate_sprite_optional()`
+
+### Procedural animations
+
+- Use `bn::timer` class to count ticks
+	- use `bn::timers::ticks_per_frame()` to convert ticks to frames
+	- use `bn::timers::ticks_per_second()` to convert ticks to seconds
+	- don't forget to cast one of those to `bn::fixed` to get something usefull
+- You can't % by a non-integer number (`bn::fixed` for example), but you can divide the timer by your desired % value
 
 
 ## Tools ideas
@@ -58,3 +66,11 @@ Manages various assets references based on user defined game state.
 Helps users to place sprites on the screen.
 - User can define an offset or a new center to a sprite
 - Place objects on screen based on screen percents
+
+### Animator
+
+Some kind of tool so I can describe animations and apply those animations to some designated properties.
+- User can describe procedural animations per second
+- Animate any property proceduraly
+	- set start & end values
+	- custom procedure defined by user

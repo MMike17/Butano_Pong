@@ -12,6 +12,10 @@
 #include <bn_random.h>
 #include <bn_fixed.h>
 #include <bn_math.h>
+#include <bn_timer.h>
+#include <bn_timers.h>
+#include <bn_string.h>
+#include <bn_sstream.h>
 
 // custom imports
 #include "main.h"
@@ -27,6 +31,10 @@ const int PADDLE_WIDTH{4};
 const int BALL_SPEED{1};
 const int SCREEN_X_LIMIT{bn::display::width() / 2};
 const int SCREEN_Y_LIMIT{bn::display::height() / 2};
+const int SCORE_ANIM_DURATION{2};
+const int SCORE_ANIM_FLASHES{2};
+const bn::fixed SCORE_MODULO{SCORE_ANIM_FLASHES / SCORE_ANIM_FLASHES * 0.5f};
+const bn::fixed SCORE_ANIM_RATIO{1 / SCORE_MODULO}; // I can't modulo with floats...but I can divide the timer by modulo
 const bn::sprite_font FONT(bn::sprite_items::common_fixed_8x8_font);
 
 GameState state;
@@ -39,8 +47,13 @@ bn::fixed_point ai_pos;
 bn::fixed_point ball_pos;
 bn::fixed_point ball_velocity;
 bn::random random;
+bn::timer score_anim_timer;
 int paddle_y_limit;
-bool paused;
+int player_score{0};
+int ai_score{0};
+bool waiting_for_input;
+bool score_anim;
+bool is_player_point;
 
 void init()
 {
@@ -154,7 +167,7 @@ void intro_init()
 
 void game_init()
 {
-	paused = true;
+	waiting_for_input = true;
 
 	// set initial positions
 	const bn::sprite_shape_size paddle_size{bn::sprite_items::paddle.shape_size()};
@@ -176,17 +189,50 @@ void game_init()
 
 void intro_logic()
 {
-	if (bn::keypad::held(bn::keypad::key_type::START))
+	if (bn::keypad::pressed(bn::keypad::key_type::START))
 		switch_to_state(GameState::Game);
 }
 
 void game_logic()
 {
 	// TODO : Bounce ball on paddles
-	// TODO : Display points
 
-	if (paused)
+	bn::sprite_text_generator text_generator(FONT);
+	text_generator.set_center_alignment();
+	text_buffer.clear();
+
+	bn::string<5> score_display;
+	bn::ostringstream builder{score_display};
+	builder.append_args(player_score, " / ", ai_score);
+
+	if (score_anim)
 	{
+		bn::fixed timer = (bn::fixed)score_anim_timer.elapsed_ticks() / bn::timers::ticks_per_second();
+		bn::fixed warped_timer = timer * SCORE_ANIM_RATIO; // timer divided by modulo
+		int value = (int)((warped_timer - (warped_timer % 1)) / 1);
+		bool show_score = value % 2 == 1; // strict sin
+
+		score_display.clear();
+		bn::string score_str = bn::to_string<4>(player_score);
+		builder.append_args(
+			player_score ? (show_score ? " " : score_str) : score_str,
+			" / ",
+			!player_score ? (show_score ? " " : score_str) : score_str);
+
+		if (timer >= SCORE_ANIM_DURATION)
+		{
+			score_anim = false;
+			waiting_for_input = true;
+
+			player_pos.set_y(0);
+			ai_pos.set_y(0);
+			ball_pos = bn::fixed_point(0, 0);
+			ball_velocity = bn::fixed_point(0, 0);
+		}
+	}
+	else if (waiting_for_input)
+	{
+		// TODO : Show text for key prompt
 		if (bn::keypad::pressed(bn::keypad::key_type::A))
 		{
 			// normalize close to 1 is okay
@@ -195,7 +241,7 @@ void game_logic()
 			bn::fixed length = bn::sqrt((random_x * random_x) + (random_y * random_y));
 
 			ball_velocity = bn::fixed_point(random_x / length, -random_y / length) * BALL_SPEED;
-			paused = false;
+			waiting_for_input = false;
 		}
 	}
 	else
@@ -212,13 +258,23 @@ void game_logic()
 		player_palette.value().set_position(player_pos);
 		ball.value().set_position(ball.value().position() + ball_velocity);
 
-		bool is_player_point = ball_pos.x() > SCREEN_X_LIMIT;
-		bool is_ai_point = ball_pos.x() < -SCREEN_X_LIMIT;
+		is_player_point = ball_pos.x() > SCREEN_X_LIMIT;
 
-		if (is_player_point || is_ai_point)
+		if (is_player_point || ball_pos.x() < -SCREEN_X_LIMIT)
 		{
-			// TODO : Interrupt and animate point scoring
-			// TODO : reset paddles
+			if (is_player_point)
+				++player_score;
+			else
+				++ai_score;
+
+			score_anim = true;
+			score_anim_timer.restart();
 		}
 	}
+
+	text_generator.generate(
+		get_canvas_point(0.5f, true),
+		get_canvas_point(0.95f, false),
+		score_display,
+		text_buffer);
 }
