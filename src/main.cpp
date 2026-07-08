@@ -192,16 +192,20 @@ void game_logic()
 
 	if (score_anim)
 	{
-		bn::fixed timer = (bn::fixed)score_anim_timer.elapsed_ticks() / bn::timers::ticks_per_second();
+		// I tried making a timer cast to bn::fixed but it looped weirdly (0 -> 2 -> -2 -> 0)
+		bn::fixed timer = (float)score_anim_timer.elapsed_ticks() / bn::timers::ticks_per_second();
 		bn::fixed warped_timer = timer * SCORE_ANIM_RATIO; // timer divided by modulo
 		int value = (int)((warped_timer - (warped_timer % 1)) / 1);
 		bool show_score = value % 2 == 1; // strict sin
 
-		bn::string score_str = bn::to_string<4>(player_score);
+		bn::string player_score_display = bn::to_string<1>(player_score);
+		bn::string ai_score_display = bn::to_string<1>(ai_score);
+
+		builder.str().clear();
 		builder.append_args(
-			player_score ? (show_score ? " " : score_str) : score_str,
+			player_score ? (show_score ? " " : player_score_display) : player_score_display,
 			" / ",
-			!player_score ? (show_score ? " " : score_str) : score_str);
+			!player_score ? (show_score ? " " : ai_score_display) : ai_score_display);
 
 		if (timer >= SCORE_ANIM_DURATION)
 		{
@@ -212,6 +216,7 @@ void game_logic()
 			ai_pos.set_y(0);
 			ball_pos = bn::fixed_point(0, 0);
 			ball_velocity = bn::fixed_point(0, 0);
+			ball.value().set_position(ball_pos);
 		}
 	}
 	else if (waiting_for_input)
@@ -241,9 +246,10 @@ void game_logic()
 		player_pos.set_y(bn::max<bn::fixed>(player_pos.y(), -paddle_y_limit));
 
 		player_palette.value().set_position(player_pos);
-		ball.value().set_position(ball.value().position() + ball_velocity);
+		ball.value().set_position(ball_pos += ball_velocity);
 
-		// TODO : I'm not sure this is getting detected...
+		// TODO : move ai palette
+
 		is_player_point = ball_pos.x() > SCREEN_X_LIMIT;
 
 		if (is_player_point || ball_pos.x() < -SCREEN_X_LIMIT)
