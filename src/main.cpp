@@ -11,7 +11,6 @@
 #include <bn_math.h>
 #include <bn_random.h>
 #include <bn_fixed.h>
-#include <bn_math.h>
 #include <bn_timer.h>
 #include <bn_timers.h>
 #include <bn_string.h>
@@ -28,10 +27,10 @@
 #include <bn_sprite_items_ball.h>
 
 const int MAX_SCORE{10};
-const int PLAYER_SPEED{2};
+const int PALETTE_SPEED{2};
 const int PADDLE_WIDTH{4};
 const int BALL_SIZE{4};
-const int BALL_SPEED{1};
+const int BALL_SPEED{2};
 const int SCREEN_X_LIMIT{bn::display::width() / 2};
 const int SCREEN_Y_LIMIT{bn::display::height() / 2};
 const int SCORE_ANIM_DURATION{2};
@@ -61,7 +60,11 @@ bool waiting_for_input;
 bool score_anim;
 bool is_player_point;
 
-// TODO : move ai palette
+// TODO : Speeds need to be floats
+// TODO : Add SFX ?
+// TODO : Add vfx ?
+// TODO : Different rebound based on palette ?
+// TODO : Ball goes faster as time goes on ? on every point ?
 
 void init()
 {
@@ -245,17 +248,33 @@ void game_logic()
 	}
 	else
 	{
+		// move player
 		if (bn::keypad::held(bn::keypad::key_type::UP))
-			player_pos.set_y(player_pos.y() - PLAYER_SPEED);
+			player_pos.set_y(player_pos.y() - PALETTE_SPEED);
 
 		if (bn::keypad::held(bn::keypad::key_type::DOWN))
-			player_pos.set_y(player_pos.y() + PLAYER_SPEED);
+			player_pos.set_y(player_pos.y() + PALETTE_SPEED);
 
 		// clamp player pos to screen
-		player_pos.set_y(bn::min<bn::fixed>(player_pos.y(), paddle_y_limit));
-		player_pos.set_y(bn::max<bn::fixed>(player_pos.y(), -paddle_y_limit));
+		player_pos.set_y(bn::max<bn::fixed>(bn::min<bn::fixed>(player_pos.y(), paddle_y_limit), -paddle_y_limit));
+
+		// move ai
+		bn::fixed y_diff = ball_pos.y() - ai_pos.y();
+
+		// follow ball
+		if (y_diff > 0)
+			ai_pos.set_y(ai_pos.y() + bn::min<bn::fixed>(y_diff, PALETTE_SPEED));
+		else
+			ai_pos.set_y(ai_pos.y() + bn::max<bn::fixed>(y_diff, -PALETTE_SPEED));
+
+		ai_pos.set_y(bn::max<bn::fixed>(bn::min<bn::fixed>(ai_pos.y(), paddle_y_limit), -paddle_y_limit));
+
+		// TODO : Should I add more AI modes ?
+		// follow player (for blocking)
+		// try to anticipate ball
 
 		player_palette.value().set_position(player_pos);
+		ai_palette.value().set_position(ai_pos);
 		ball.value().set_position(ball_pos += ball_velocity);
 		ball_collisions();
 	}
