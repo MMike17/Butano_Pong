@@ -57,6 +57,11 @@ This is a learning project, things will be messy.
 - Having a single function to display text creates time of clear issue with the text buffer
 	- clear the text buffer at the start of the update method that's going to run
 
+### Audio
+
+- Audio effects can be added as .wav
+- Background audio only works with some complicated file format that I couldn't find
+
 
 ## Tools ideas
 

@@ -35,6 +35,7 @@ const int SCREEN_X_LIMIT{bn::display::width() / 2};
 const int SCREEN_Y_LIMIT{bn::display::height() / 2};
 const int SCORE_ANIM_DURATION{2};
 const int SCORE_ANIM_FLASHES{2};
+const bn::fixed FLAT_BALL_VEL_THRESHOLD{0.2f};
 const bn::fixed MAX_BALL_SPEED{2.5f};
 const bn::fixed MIN_BALL_SPEED{1.5f};
 const bn::fixed PALETTE_SPEED{1.2f};
@@ -64,10 +65,9 @@ bool waiting_for_input;
 bool score_anim;
 bool is_player_point;
 
-// TODO : Add BGM ?
 // TODO : Add VFX ?
 // TODO : Different rebound based on palette ?
-// TODO : Fix "flat" vel detection threshold
+// TODO : Make AI feel more natural
 
 void init()
 {
@@ -253,14 +253,14 @@ void game_logic()
 			bn::fixed random_x = random.get_fixed(-1, 1);
 
 			// makes sure we get some x magnitude
-			if (random_x < 0.1f && random_x > -0.1f)
-				random_x *= 5;
+			if (random_x < FLAT_BALL_VEL_THRESHOLD && random_x > FLAT_BALL_VEL_THRESHOLD)
+				random_x *= 1 / FLAT_BALL_VEL_THRESHOLD;
 
 			bn::fixed random_y = random.get_fixed(-1, 1);
 
 			// makes sure we get some y magnitude
-			if (random_y < 0.1f && random_y > -0.1f)
-				random_y *= 5;
+			if (random_y < FLAT_BALL_VEL_THRESHOLD && random_y > FLAT_BALL_VEL_THRESHOLD)
+				random_y *= 1 / FLAT_BALL_VEL_THRESHOLD;
 
 			bn::fixed length = bn::sqrt((random_x * random_x) + (random_y * random_y));
 			ball_velocity = bn::fixed_point(random_x / length, -random_y / length) * ball_speed;
