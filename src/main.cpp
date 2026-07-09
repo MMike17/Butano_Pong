@@ -27,6 +27,7 @@
 #include <bn_sprite_items_paddle.h>
 #include <bn_sprite_items_ball.h>
 
+const int MAX_SCORE{10};
 const int PLAYER_SPEED{2};
 const int PADDLE_WIDTH{4};
 const int BALL_SIZE{4};
@@ -60,9 +61,7 @@ bool waiting_for_input;
 bool score_anim;
 bool is_player_point;
 
-// TODO : Fix error on finish game
 // TODO : move ai palette
-// TODO : Fix ai palette collision rect
 
 void init()
 {
@@ -100,7 +99,7 @@ void state_update()
 
 	case GameState::Result:
 		text_buffer.clear();
-		display_text(get_canvas_pos(0.5f, 0.5f), player_score == 10 ? "Player wins !" : "AI wins !");
+		display_text(get_canvas_pos(0.5f, 0.5f), player_score == MAX_SCORE ? "Player wins !" : "AI wins !");
 
 		if (bn::keypad::pressed(bn::keypad::key_type::A))
 		{
@@ -297,7 +296,12 @@ void ball_collisions()
 		else
 			++ai_score;
 
-		score_anim = true;
-		score_anim_timer.restart();
+		if (player_score == MAX_SCORE || ai_score == MAX_SCORE)
+			switch_to_state(GameState::Result);
+		else
+		{
+			score_anim = true;
+			score_anim_timer.restart();
+		}
 	}
 }
