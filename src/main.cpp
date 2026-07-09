@@ -34,7 +34,7 @@ const int SCREEN_Y_LIMIT{bn::display::height() / 2};
 const int SCORE_ANIM_DURATION{2};
 const int SCORE_ANIM_FLASHES{2};
 const bn::fixed PALETTE_SPEED{1.2f};
-const bn::fixed BALL_SPEED{1.5f};
+const bn::fixed BALL_SPEED{1.7f};
 const bn::fixed SCORE_MODULO{SCORE_ANIM_FLASHES / SCORE_ANIM_FLASHES * 0.5f};
 const bn::fixed SCORE_ANIM_RATIO{1 / SCORE_MODULO}; // I can't modulo with floats...but I can divide the timer by modulo
 const bn::sprite_font FONT(bn::sprite_items::common_fixed_8x8_font);
@@ -239,7 +239,17 @@ void game_logic()
 		{
 			// normalize close to 1 is okay
 			bn::fixed random_x = random.get_fixed(-1, 1);
+
+			// makes sure we get some x magnitude
+			if (random_x < 0.1f && random_x > -0.1f)
+				random_x *= 5;
+
 			bn::fixed random_y = random.get_fixed(-1, 1);
+
+			// makes sure we get some y magnitude
+			if (random_y < 0.1f && random_y > -0.1f)
+				random_y *= 5;
+
 			bn::fixed length = bn::sqrt((random_x * random_x) + (random_y * random_y));
 
 			ball_velocity = bn::fixed_point(random_x / length, -random_y / length) * BALL_SPEED;
