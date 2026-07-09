@@ -27,14 +27,14 @@
 #include <bn_sprite_items_ball.h>
 
 const int MAX_SCORE{10};
-const int PALETTE_SPEED{2};
 const int PADDLE_WIDTH{4};
 const int BALL_SIZE{4};
-const int BALL_SPEED{2};
 const int SCREEN_X_LIMIT{bn::display::width() / 2};
 const int SCREEN_Y_LIMIT{bn::display::height() / 2};
 const int SCORE_ANIM_DURATION{2};
 const int SCORE_ANIM_FLASHES{2};
+const bn::fixed PALETTE_SPEED{1.2f};
+const bn::fixed BALL_SPEED{1.5f};
 const bn::fixed SCORE_MODULO{SCORE_ANIM_FLASHES / SCORE_ANIM_FLASHES * 0.5f};
 const bn::fixed SCORE_ANIM_RATIO{1 / SCORE_MODULO}; // I can't modulo with floats...but I can divide the timer by modulo
 const bn::sprite_font FONT(bn::sprite_items::common_fixed_8x8_font);
@@ -60,7 +60,7 @@ bool waiting_for_input;
 bool score_anim;
 bool is_player_point;
 
-// TODO : Speeds need to be floats
+// TODO : Have ball random vel.x be at least a certain magnitude
 // TODO : Add SFX ?
 // TODO : Add vfx ?
 // TODO : Different rebound based on palette ?

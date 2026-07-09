@@ -86,3 +86,10 @@ Custom log tool similar to what I made in ArtOfRally_ModBase
 - Log at interesting places for control flow
 - Enable / disable logging easily
 - Tag logs for better readability
+
+### Particle system
+
+System to animate particles in a very simple way
+- needs to make it very very light
+- needs to be very lightweight in terms of memory
+- gravity and animations
