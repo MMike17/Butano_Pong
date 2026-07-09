@@ -60,9 +60,9 @@ bool waiting_for_input;
 bool score_anim;
 bool is_player_point;
 
-// TODO : Fix score anim flashing player when ai scores
 // TODO : Fix error on finish game
 // TODO : move ai palette
+// TODO : Fix ai palette collision rect
 
 void init()
 {
@@ -200,7 +200,7 @@ void game_logic()
 
 	if (score_anim)
 	{
-		// I tried making a timer cast to bn::fixed but it looped weirdly (0 -> 2 -> -2 -> 0)
+		// I tried making a timer cast to bn::fixed but it looped weirdly (0 -> 2 -> -2 -> 0) type overflow ?
 		bn::fixed timer = (float)score_anim_timer.elapsed_ticks() / bn::timers::ticks_per_second();
 		bn::fixed warped_timer = timer * SCORE_ANIM_RATIO; // timer divided by modulo
 		int value = (int)((warped_timer - (warped_timer % 1)) / 1);
@@ -211,9 +211,9 @@ void game_logic()
 
 		builder.str().clear();
 		builder.append_args(
-			player_score ? (show_score ? " " : player_score_display) : player_score_display,
+			is_player_point ? (show_score ? " " : player_score_display) : player_score_display,
 			" / ",
-			!player_score ? (show_score ? " " : ai_score_display) : ai_score_display);
+			!is_player_point ? (show_score ? " " : ai_score_display) : ai_score_display);
 
 		if (timer >= SCORE_ANIM_DURATION)
 		{
