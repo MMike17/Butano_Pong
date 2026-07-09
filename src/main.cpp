@@ -34,8 +34,9 @@ const int SCREEN_X_LIMIT{bn::display::width() / 2};
 const int SCREEN_Y_LIMIT{bn::display::height() / 2};
 const int SCORE_ANIM_DURATION{2};
 const int SCORE_ANIM_FLASHES{2};
+const bn::fixed MAX_BALL_SPEED{2.5f};
+const bn::fixed MIN_BALL_SPEED{1.5f};
 const bn::fixed PALETTE_SPEED{1.2f};
-const bn::fixed BALL_SPEED{1.7f};
 const bn::fixed SCORE_MODULO{SCORE_ANIM_FLASHES / SCORE_ANIM_FLASHES * 0.5f};
 const bn::fixed SCORE_ANIM_RATIO{1 / SCORE_MODULO}; // I can't modulo with floats...but I can divide the timer by modulo
 const bn::sprite_font FONT(bn::sprite_items::common_fixed_8x8_font);
@@ -53,6 +54,7 @@ bn::fixed_point ball_pos;
 bn::fixed_point ball_velocity;
 bn::random random;
 bn::timer score_anim_timer;
+bn::fixed ball_speed;
 int paddle_offset;
 int paddle_y_limit;
 int player_score{0};
@@ -167,6 +169,9 @@ void game_init()
 {
 	waiting_for_input = true;
 
+	bn::fixed score_percent = bn::max(player_score, ai_score) / (MAX_SCORE - 1);
+	ball_speed = MIN_BALL_SPEED + (MAX_BALL_SPEED - MIN_BALL_SPEED) * score_percent;
+
 	// set initial positions
 	const bn::sprite_shape_size paddle_size{bn::sprite_items::paddle.shape_size()};
 	paddle_offset = paddle_size.width() / 2 - PADDLE_WIDTH / 2;
@@ -251,8 +256,7 @@ void game_logic()
 				random_y *= 5;
 
 			bn::fixed length = bn::sqrt((random_x * random_x) + (random_y * random_y));
-
-			ball_velocity = bn::fixed_point(random_x / length, -random_y / length) * BALL_SPEED;
+			ball_velocity = bn::fixed_point(random_x / length, -random_y / length) * ball_speed;
 			waiting_for_input = false;
 		}
 	}
