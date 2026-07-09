@@ -17,6 +17,8 @@
 #include <bn_sstream.h>
 #include <bn_rect.h>
 #include <bn_sound_items.h>
+#include <bn_sprite_palette_ptr.h>
+#include <bn_colors.h>
 
 // custom imports
 #include "main.h"
@@ -36,6 +38,7 @@ const int SCREEN_Y_LIMIT{bn::display::height() / 2};
 const int SCORE_ANIM_DURATION{2};
 const int SCORE_ANIM_FLASHES{2};
 const bn::fixed FLAT_BALL_VEL_THRESHOLD{0.2f};
+const bn::fixed BALL_BOOST_SPEED{0.5f};
 const bn::fixed MAX_BALL_SPEED{2.5f};
 const bn::fixed MIN_BALL_SPEED{1.5f};
 const bn::fixed PALETTE_SPEED{1.2f};
@@ -64,10 +67,10 @@ int ai_score{0};
 bool waiting_for_input;
 bool score_anim;
 bool is_player_point;
+bool has_boost;
 
-// TODO : Add VFX ?
-// TODO : Different rebound based on palette ?
 // TODO : Make AI feel more natural
+// TODO : Add VFX ?
 
 void init()
 {
@@ -243,6 +246,7 @@ void game_logic()
 	}
 	else if (waiting_for_input)
 	{
+		has_boost = false;
 		display_text(get_canvas_pos(0.5f, 0.7f), "Press [A] to start the game");
 
 		if (bn::keypad::pressed(bn::keypad::key_type::A))
@@ -317,9 +321,11 @@ void ball_collisions()
 		(int)player_pos.y());
 	ball_rect.value().set_position((int)ball_pos.x(), (int)ball_pos.y());
 
+	// TODO : Different rebound based on palette ?
+
 	if (ball_velocity.x() < 0 && palette_rect.value().intersects(ball_rect.value()))
 	{
-		ball_velocity.set_x(-ball_velocity.x());
+		ball_velocity.set_x(manage_ball_collision(palette_rect.value()));
 		bn::sound_items::impact.play(1);
 	}
 
@@ -329,7 +335,7 @@ void ball_collisions()
 
 	if (ball_velocity.x() > 0 && palette_rect.value().intersects(ball_rect.value()))
 	{
-		ball_velocity.set_x(-ball_velocity.x());
+		ball_velocity.set_x(manage_ball_collision(palette_rect.value()));
 		bn::sound_items::impact.play(1);
 	}
 
@@ -356,4 +362,27 @@ void ball_collisions()
 			score_anim_timer.restart();
 		}
 	}
+}
+
+bn::fixed manage_ball_collision(const bn::rect &rect)
+{
+	bn::fixed new_speed = -ball_velocity.x();
+	bn::fixed y_diff = ball_pos.y() - rect.position().y();
+
+	if (has_boost)
+	{
+		new_speed -= BALL_BOOST_SPEED * (new_speed > 0 ? 1 : -1);
+		has_boost = false;
+	}
+
+	if (!has_boost && (y_diff <= 2 && y_diff >= -2))
+	{
+		new_speed += BALL_BOOST_SPEED * (new_speed > 0 ? 1 : -1);
+		has_boost = true;
+	}
+
+	bn::sprite_palette_ptr palette = ball.value().palette();
+	palette.set_fade(bn::colors::red, has_boost ? 0.5f : 0);
+
+	return new_speed;
 }

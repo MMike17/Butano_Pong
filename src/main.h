@@ -12,6 +12,8 @@
 /* ─── Includes ────────────────────────────────────────────────────────── */
 
 #include <bn_string_view.h>
+#include <bn_fixed.h>
+#include <bn_rect.h>
 #include "game_state.h"
 
 /* ─── Function Prototypes ─────────────────────────────────────────────── */
@@ -25,5 +27,6 @@ void intro_logic(void);
 void game_logic(void);
 void display_text(bn::fixed_point pos, bn::string_view text);
 void ball_collisions(void);
+bn::fixed manage_ball_collision(const bn::rect &rect);
 
 #endif /* MAIN_H */
