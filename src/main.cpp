@@ -60,7 +60,6 @@ bool waiting_for_input;
 bool score_anim;
 bool is_player_point;
 
-// TODO : Reset paddle pos before restart prompt
 // TODO : Fix score anim flashing player when ai scores
 // TODO : Fix error on finish game
 // TODO : move ai palette
@@ -222,7 +221,9 @@ void game_logic()
 			waiting_for_input = true;
 
 			player_pos.set_y(0);
+			player_palette.value().set_position(player_pos);
 			ai_pos.set_y(0);
+			ai_palette.value().set_position(ai_pos);
 			ball_pos = bn::fixed_point(0, 0);
 			ball_velocity = bn::fixed_point(0, 0);
 			ball.value().set_position(ball_pos);
