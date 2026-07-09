@@ -16,6 +16,7 @@
 #include <bn_string.h>
 #include <bn_sstream.h>
 #include <bn_rect.h>
+#include <bn_sound_items.h>
 
 // custom imports
 #include "main.h"
@@ -63,8 +64,8 @@ bool waiting_for_input;
 bool score_anim;
 bool is_player_point;
 
-// TODO : Ball goes faster as time goes on ? on every point ?
 // TODO : Add SFX ?
+// TODO : Add BGM ?
 // TODO : Add VFX ?
 // TODO : Different rebound based on palette ?
 
@@ -108,6 +109,7 @@ void state_update()
 
 		if (bn::keypad::pressed(bn::keypad::key_type::A))
 		{
+			bn::sound_items::btn_select.play(1);
 			player_score = 0;
 			ai_score = 0;
 			switch_to_state(GameState::Game);
@@ -195,7 +197,10 @@ void game_init()
 void intro_logic()
 {
 	if (bn::keypad::pressed(bn::keypad::key_type::START))
+	{
+		bn::sound_items::btn_select.play(1);
 		switch_to_state(GameState::Game);
+	}
 }
 
 void game_logic()
@@ -242,6 +247,8 @@ void game_logic()
 
 		if (bn::keypad::pressed(bn::keypad::key_type::A))
 		{
+			bn::sound_items::btn_select.play(1);
+
 			// normalize close to 1 is okay
 			bn::fixed random_x = random.get_fixed(-1, 1);
 
