@@ -29,6 +29,7 @@
 const int MAX_SCORE{10};
 const int PADDLE_WIDTH{4};
 const int BALL_SIZE{4};
+const int PADDLE_TOUCH_OFFSET{1};
 const int SCREEN_X_LIMIT{bn::display::width() / 2};
 const int SCREEN_Y_LIMIT{bn::display::height() / 2};
 const int SCORE_ANIM_DURATION{2};
@@ -60,11 +61,10 @@ bool waiting_for_input;
 bool score_anim;
 bool is_player_point;
 
-// TODO : Have ball random vel.x be at least a certain magnitude
-// TODO : Add SFX ?
-// TODO : Add vfx ?
-// TODO : Different rebound based on palette ?
 // TODO : Ball goes faster as time goes on ? on every point ?
+// TODO : Add SFX ?
+// TODO : Add VFX ?
+// TODO : Different rebound based on palette ?
 
 void init()
 {
@@ -301,14 +301,17 @@ void display_text(bn::fixed_point pos, bn::string_view text)
 
 void ball_collisions()
 {
-	palette_rect.value().set_position((int)player_pos.x() - paddle_offset + PADDLE_WIDTH / 2, (int)player_pos.y());
+	palette_rect.value().set_position(
+		(int)player_pos.x() - paddle_offset + PADDLE_WIDTH / 2 - PADDLE_TOUCH_OFFSET,
+		(int)player_pos.y());
 	ball_rect.value().set_position((int)ball_pos.x(), (int)ball_pos.y());
 
 	if (ball_velocity.x() < 0 && palette_rect.value().intersects(ball_rect.value()))
 		ball_velocity.set_x(-ball_velocity.x());
 
-	// TODO : fix rect detection for ai ?
-	palette_rect.value().set_position((int)ai_pos.x() - PADDLE_WIDTH / 2, (int)ai_pos.y());
+	palette_rect.value().set_position(
+		(int)ai_pos.x() - PADDLE_WIDTH * 2 + PADDLE_TOUCH_OFFSET,
+		(int)ai_pos.y());
 
 	if (ball_velocity.x() > 0 && palette_rect.value().intersects(ball_rect.value()))
 		ball_velocity.set_x(-ball_velocity.x());
