@@ -64,10 +64,10 @@ bool waiting_for_input;
 bool score_anim;
 bool is_player_point;
 
-// TODO : Add SFX ?
 // TODO : Add BGM ?
 // TODO : Add VFX ?
 // TODO : Different rebound based on palette ?
+// TODO : Fix "flat" vel detection threshold
 
 void init()
 {
@@ -318,17 +318,26 @@ void ball_collisions()
 	ball_rect.value().set_position((int)ball_pos.x(), (int)ball_pos.y());
 
 	if (ball_velocity.x() < 0 && palette_rect.value().intersects(ball_rect.value()))
+	{
 		ball_velocity.set_x(-ball_velocity.x());
+		bn::sound_items::impact.play(1);
+	}
 
 	palette_rect.value().set_position(
 		(int)ai_pos.x() - PADDLE_WIDTH * 2 + PADDLE_TOUCH_OFFSET,
 		(int)ai_pos.y());
 
 	if (ball_velocity.x() > 0 && palette_rect.value().intersects(ball_rect.value()))
+	{
 		ball_velocity.set_x(-ball_velocity.x());
+		bn::sound_items::impact.play(1);
+	}
 
 	if (ball_pos.y() + BALL_SIZE / 2 >= SCREEN_Y_LIMIT || ball_pos.y() - BALL_SIZE / 2 <= -SCREEN_Y_LIMIT)
+	{
 		ball_velocity.set_y(-ball_velocity.y());
+		bn::sound_items::impact.play(0.5f);
+	}
 
 	is_player_point = ball_pos.x() > SCREEN_X_LIMIT;
 
