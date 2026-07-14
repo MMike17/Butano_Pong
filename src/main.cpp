@@ -23,6 +23,7 @@
 // custom imports
 #include "main.h"
 #include "canvas.h"
+#include "vector2.h"
 
 // sprite imports
 #include <bn_sprite_items_common_fixed_8x8_font.h>
@@ -37,8 +38,12 @@ const int SCREEN_X_LIMIT{bn::display::width() / 2};
 const int SCREEN_Y_LIMIT{bn::display::height() / 2};
 const int SCORE_ANIM_DURATION{2};
 const int SCORE_ANIM_FLASHES{2};
+const int PADDLE_BOOST_THRESHOLD{1};
+const int MAX_ANGLE_REBOUND{60};
+const int MIN_ANGLE_REBOUND{15};
+const int START_ANGLE_DEADZONE{10};
 const bn::fixed FLAT_BALL_VEL_THRESHOLD{0.2f};
-const bn::fixed BALL_BOOST_SPEED{0.5f};
+const bn::fixed BALL_BOOST_MULT{2};
 const bn::fixed MAX_BALL_SPEED{2.5f};
 const bn::fixed MIN_BALL_SPEED{1.5f};
 const bn::fixed PALETTE_SPEED{1.2f};
@@ -56,7 +61,7 @@ bn::optional<bn::rect> ball_rect;
 bn::fixed_point player_pos;
 bn::fixed_point ai_pos;
 bn::fixed_point ball_pos;
-bn::fixed_point ball_velocity;
+bn::fixed_point ball_dir;
 bn::random random;
 bn::timer score_anim_timer;
 bn::fixed ball_speed;
@@ -240,9 +245,12 @@ void game_logic()
 			ai_pos.set_y(0);
 			ai_palette.value().set_position(ai_pos);
 			ball_pos = bn::fixed_point(0, 0);
-			ball_velocity = bn::fixed_point(0, 0);
+			ball_dir = bn::fixed_point(0, 0);
 			ball.value().set_position(ball_pos);
 		}
+
+		bn::sprite_palette_ptr palette = ball.value().palette();
+		palette.set_fade(bn::colors::red, 0);
 	}
 	else if (waiting_for_input)
 	{
@@ -253,21 +261,10 @@ void game_logic()
 		{
 			bn::sound_items::btn_select.play(1);
 
-			// normalize close to 1 is okay
-			bn::fixed random_x = random.get_fixed(-1, 1);
+			int angle{lerp(START_ANGLE_DEADZONE, 90 - START_ANGLE_DEADZONE, random.get_fixed(1))};
+			int sign{random.get_fixed(-1, 1) > 0 ? 1 : -1};
 
-			// makes sure we get some x magnitude
-			if (random_x < FLAT_BALL_VEL_THRESHOLD && random_x > FLAT_BALL_VEL_THRESHOLD)
-				random_x *= 1 / FLAT_BALL_VEL_THRESHOLD;
-
-			bn::fixed random_y = random.get_fixed(-1, 1);
-
-			// makes sure we get some y magnitude
-			if (random_y < FLAT_BALL_VEL_THRESHOLD && random_y > FLAT_BALL_VEL_THRESHOLD)
-				random_y *= 1 / FLAT_BALL_VEL_THRESHOLD;
-
-			bn::fixed length = bn::sqrt((random_x * random_x) + (random_y * random_y));
-			ball_velocity = bn::fixed_point(random_x / length, -random_y / length) * ball_speed;
+			ball_dir = vector2::rotate_vector(bn::fixed_point(1, 0), angle * sign);
 			waiting_for_input = false;
 		}
 	}
@@ -300,7 +297,7 @@ void game_logic()
 
 		player_palette.value().set_position(player_pos);
 		ai_palette.value().set_position(ai_pos);
-		ball.value().set_position(ball_pos += ball_velocity);
+		ball.value().set_position(ball_pos += ball_dir * ball_speed * (has_boost ? BALL_BOOST_MULT : 1));
 		ball_collisions();
 	}
 
@@ -321,27 +318,19 @@ void ball_collisions()
 		(int)player_pos.y());
 	ball_rect.value().set_position((int)ball_pos.x(), (int)ball_pos.y());
 
-	// TODO : Different rebound based on palette ?
-
-	if (ball_velocity.x() < 0 && palette_rect.value().intersects(ball_rect.value()))
-	{
-		ball_velocity.set_x(manage_ball_collision(palette_rect.value()));
-		bn::sound_items::impact.play(1);
-	}
+	if (ball_dir.x() < 0 && palette_rect.value().intersects(ball_rect.value()))
+		manage_ball_collision(palette_rect.value());
 
 	palette_rect.value().set_position(
 		(int)ai_pos.x() - PADDLE_WIDTH * 2 + PADDLE_TOUCH_OFFSET,
 		(int)ai_pos.y());
 
-	if (ball_velocity.x() > 0 && palette_rect.value().intersects(ball_rect.value()))
-	{
-		ball_velocity.set_x(manage_ball_collision(palette_rect.value()));
-		bn::sound_items::impact.play(1);
-	}
+	if (ball_dir.x() > 0 && palette_rect.value().intersects(ball_rect.value()))
+		manage_ball_collision(palette_rect.value());
 
 	if (ball_pos.y() + BALL_SIZE / 2 >= SCREEN_Y_LIMIT || ball_pos.y() - BALL_SIZE / 2 <= -SCREEN_Y_LIMIT)
 	{
-		ball_velocity.set_y(-ball_velocity.y());
+		ball_dir.set_y(-ball_dir.y());
 		bn::sound_items::impact.play(0.5f);
 	}
 
@@ -364,25 +353,44 @@ void ball_collisions()
 	}
 }
 
-bn::fixed manage_ball_collision(const bn::rect &rect)
+void manage_ball_collision(const bn::rect &rect)
 {
-	bn::fixed new_speed = -ball_velocity.x();
-	bn::fixed y_diff = ball_pos.y() - rect.position().y();
+	bn::fixed y_diff{ball_pos.y() - rect.position().y()};
 
-	if (has_boost)
-	{
-		new_speed -= BALL_BOOST_SPEED * (new_speed > 0 ? 1 : -1);
-		has_boost = false;
-	}
+	// ignore invalid collisions
+	if (ball_pos.x() < rect.position().x() || y_diff > palette_rect.value().height() / 2)
+		return;
 
-	if (!has_boost && (y_diff <= 2 && y_diff >= -2))
-	{
-		new_speed += BALL_BOOST_SPEED * (new_speed > 0 ? 1 : -1);
-		has_boost = true;
-	}
+	bn::sound_items::impact.play(1);
+
+	// detect boost
+	has_boost = y_diff <= PADDLE_BOOST_THRESHOLD && y_diff >= -PADDLE_BOOST_THRESHOLD;
 
 	bn::sprite_palette_ptr palette = ball.value().palette();
-	palette.set_fade(bn::colors::red, has_boost ? 0.5f : 0);
+	palette.set_fade(bn::colors::red, has_boost ? 0.7f : 0);
 
-	return new_speed;
+	// rebound + normalize
+	ball_dir.set_y(0);
+
+	if (ball_dir.x() > 0)
+		ball_dir.set_x(-1);
+	else
+		ball_dir.set_x(1);
+
+	// apply paddle angle
+	if (!has_boost)
+	{
+		bn::fixed target_angle = lerp(
+			MIN_ANGLE_REBOUND,
+			MAX_ANGLE_REBOUND,
+			((y_diff)-PADDLE_BOOST_THRESHOLD) /
+				(palette_rect.value().height() / 2 - PADDLE_BOOST_THRESHOLD));
+
+		ball_dir = vector2::rotate_vector(ball_dir, (int)target_angle);
+	}
+}
+
+const inline bn::fixed lerp(const bn::fixed min, const bn::fixed max, const bn::fixed delta)
+{
+	return min + ((max - min) * delta);
 }

@@ -12,7 +12,6 @@
 /* ─── Includes ────────────────────────────────────────────────────────── */
 
 #include <bn_string_view.h>
-#include <bn_fixed.h>
 #include <bn_rect.h>
 #include "game_state.h"
 
@@ -27,6 +26,7 @@ void intro_logic(void);
 void game_logic(void);
 void display_text(bn::fixed_point pos, bn::string_view text);
 void ball_collisions(void);
-bn::fixed manage_ball_collision(const bn::rect &rect);
+void manage_ball_collision(const bn::rect &rect);
+const inline bn::fixed lerp(bn::fixed min, bn::fixed max, bn::fixed delta);
 
 #endif /* MAIN_H */
