@@ -62,6 +62,11 @@ This is a learning project, things will be messy.
 - Audio effects can be added as .wav
 - Background audio only works with some complicated file format that I couldn't find
 
+### trigonometry
+
+- for some reason, the default trigonometry operations in butano don't get you degrees
+- use `bn::degrees_` instead of the normal versions to get a usable result
+
 
 ## Tools ideas
 

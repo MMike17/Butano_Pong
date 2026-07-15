@@ -42,10 +42,12 @@ const int PADDLE_BOOST_THRESHOLD{1};
 const int MAX_ANGLE_REBOUND{70};
 const int MIN_ANGLE_REBOUND{25};
 const int START_ANGLE_DEADZONE{15};
-const bn::fixed BALL_BOOST_MULT{1.8f};
+const int DUMB_AI_THRESHOLD{4};
+const int SMART_AI_THRESHOLD{7};
+const bn::fixed BALL_BOOST_MULT{2.2f};
 const bn::fixed MAX_BALL_SPEED{2.5f};
 const bn::fixed MIN_BALL_SPEED{1.7f};
-const bn::fixed PALETTE_SPEED{1.1f};
+const bn::fixed PALETTE_SPEED{1.2f};
 const bn::fixed SCORE_MODULO{SCORE_ANIM_FLASHES / SCORE_ANIM_FLASHES * 0.5f};
 const bn::fixed SCORE_ANIM_RATIO{1 / SCORE_MODULO}; // I can't modulo with floats...but I can divide the timer by modulo
 const bn::sprite_font FONT(bn::sprite_items::common_fixed_8x8_font);
@@ -280,19 +282,29 @@ void game_logic()
 		player_pos.set_y(bn::max<bn::fixed>(bn::min<bn::fixed>(player_pos.y(), paddle_y_limit), -paddle_y_limit));
 
 		// move ai
-		bn::fixed y_diff = ball_pos.y() - ai_pos.y();
+		int score_magnitude = bn::max(player_score, ai_score);
+		bn::fixed y_target = ball_pos.y();
 
-		// follow ball
-		if (y_diff > 0)
-			ai_pos.set_y(ai_pos.y() + bn::min<bn::fixed>(y_diff, PALETTE_SPEED));
+		if (score_magnitude > DUMB_AI_THRESHOLD)
+		{
+			// try to anticipate ball
+			y_target += ball_dir.y() * ball_speed;
+
+			if (score_magnitude > SMART_AI_THRESHOLD && ball_pos.x() < 0)
+			{
+				// follow player (for blocking)
+				y_target = player_pos.y();
+			}
+		}
+
+		y_target -= ai_pos.y();
+
+		if (y_target > 0)
+			ai_pos.set_y(ai_pos.y() + bn::min<bn::fixed>(y_target, PALETTE_SPEED));
 		else
-			ai_pos.set_y(ai_pos.y() + bn::max<bn::fixed>(y_diff, -PALETTE_SPEED));
+			ai_pos.set_y(ai_pos.y() + bn::max<bn::fixed>(y_target, -PALETTE_SPEED));
 
 		ai_pos.set_y(bn::max<bn::fixed>(bn::min<bn::fixed>(ai_pos.y(), paddle_y_limit), -paddle_y_limit));
-
-		// TODO : Should I add more AI modes ?
-		// follow player (for blocking)
-		// try to anticipate ball
 
 		player_palette.value().set_position(player_pos);
 		ai_palette.value().set_position(ai_pos);
