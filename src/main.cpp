@@ -39,14 +39,13 @@ const int SCREEN_Y_LIMIT{bn::display::height() / 2};
 const int SCORE_ANIM_DURATION{2};
 const int SCORE_ANIM_FLASHES{2};
 const int PADDLE_BOOST_THRESHOLD{1};
-const int MAX_ANGLE_REBOUND{60};
-const int MIN_ANGLE_REBOUND{15};
-const int START_ANGLE_DEADZONE{10};
-const bn::fixed FLAT_BALL_VEL_THRESHOLD{0.2f};
-const bn::fixed BALL_BOOST_MULT{2};
+const int MAX_ANGLE_REBOUND{70};
+const int MIN_ANGLE_REBOUND{25};
+const int START_ANGLE_DEADZONE{15};
+const bn::fixed BALL_BOOST_MULT{1.8f};
 const bn::fixed MAX_BALL_SPEED{2.5f};
-const bn::fixed MIN_BALL_SPEED{1.5f};
-const bn::fixed PALETTE_SPEED{1.2f};
+const bn::fixed MIN_BALL_SPEED{1.7f};
+const bn::fixed PALETTE_SPEED{1.1f};
 const bn::fixed SCORE_MODULO{SCORE_ANIM_FLASHES / SCORE_ANIM_FLASHES * 0.5f};
 const bn::fixed SCORE_ANIM_RATIO{1 / SCORE_MODULO}; // I can't modulo with floats...but I can divide the timer by modulo
 const bn::sprite_font FONT(bn::sprite_items::common_fixed_8x8_font);
@@ -355,6 +354,7 @@ void ball_collisions()
 
 void manage_ball_collision(const bn::rect &rect)
 {
+	// TODO : AI paddle collision angle is reversed
 	bn::fixed y_diff{ball_pos.y() - rect.position().y()};
 
 	// ignore invalid collisions
