@@ -54,8 +54,6 @@ const bn::fixed SCORE_MODULO{SCORE_ANIM_FLASHES / SCORE_ANIM_FLASHES * 0.5f};
 const bn::fixed SCORE_ANIM_RATIO{1 / SCORE_MODULO}; // I can't modulo with floats...but I can divide the timer by modulo
 const bn::sprite_font FONT(bn::sprite_items::common_fixed_8x8_font);
 
-// TODO : Fix ai move halve on distance
-
 GameState state;
 bn::vector<bn::sprite_ptr, 32> text_buffer;
 bn::optional<bn::sprite_ptr> player_palette;
@@ -299,8 +297,9 @@ void game_logic()
 
 			if (ball_pos.x() < 0)
 			{
-				bn::fixed distance_percent = 1 - (ball_pos.x() / (bn::display::width() / 2));
-				ai_speed = lerp(0, PALETTE_SPEED, distance_percent);
+				bn::fixed distance_percent = ball_pos.x() / (bn::display::width() / 2);
+				// should make quadratic curve
+				ai_speed = lerp(PALETTE_SPEED, 0, distance_percent * distance_percent * distance_percent);
 			}
 
 			if (score_magnitude > SMART_AI_THRESHOLD)
@@ -327,6 +326,8 @@ void game_logic()
 			ai_pos.set_y(ai_pos.y() + bn::max<bn::fixed>(ai_y_target, -ai_speed));
 
 		ai_pos.set_y(bn::max<bn::fixed>(bn::min<bn::fixed>(ai_pos.y(), paddle_y_limit), -paddle_y_limit));
+
+		// TODO : Fix paddle angling
 
 		// apply move
 		ball_collisions();
