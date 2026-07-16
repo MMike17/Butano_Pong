@@ -26,7 +26,9 @@ void intro_logic(void);
 void game_logic(void);
 void display_text(bn::fixed_point pos, bn::string_view text);
 void ball_collisions(void);
-void manage_ball_collision(const bn::rect &rect);
+void manage_ball_collision(const bn::rect &rect, int angle_sign);
 const inline bn::fixed lerp(bn::fixed min, bn::fixed max, bn::fixed delta);
+inline int sign(bn::fixed value);
+void recomp_ai_aim_offset();
 
 #endif /* MAIN_H */

@@ -41,13 +41,15 @@ const int SCORE_ANIM_FLASHES{2};
 const int PADDLE_BOOST_THRESHOLD{1};
 const int MAX_ANGLE_REBOUND{70};
 const int MIN_ANGLE_REBOUND{25};
+const int MIN_AIM_OFFSET{0};
+const int MAX_AIM_OFFSET{5};
 const int START_ANGLE_DEADZONE{15};
 const int DUMB_AI_THRESHOLD{4};
 const int SMART_AI_THRESHOLD{7};
 const bn::fixed BALL_BOOST_MULT{2.2f};
 const bn::fixed MAX_BALL_SPEED{2.5f};
 const bn::fixed MIN_BALL_SPEED{1.7f};
-const bn::fixed PALETTE_SPEED{1.2f};
+const bn::fixed PALETTE_SPEED{1.3f};
 const bn::fixed SCORE_MODULO{SCORE_ANIM_FLASHES / SCORE_ANIM_FLASHES * 0.5f};
 const bn::fixed SCORE_ANIM_RATIO{1 / SCORE_MODULO}; // I can't modulo with floats...but I can divide the timer by modulo
 const bn::sprite_font FONT(bn::sprite_items::common_fixed_8x8_font);
@@ -66,6 +68,9 @@ bn::fixed_point ball_dir;
 bn::random random;
 bn::timer score_anim_timer;
 bn::fixed ball_speed;
+bn::fixed score_percent;
+bn::fixed ai_y_target;
+bn::fixed ai_aim_offset;
 int paddle_offset;
 int paddle_y_limit;
 int player_score{0};
@@ -180,9 +185,6 @@ void game_init()
 {
 	waiting_for_input = true;
 
-	bn::fixed score_percent = bn::max(player_score, ai_score) / (MAX_SCORE - 1);
-	ball_speed = MIN_BALL_SPEED + (MAX_BALL_SPEED - MIN_BALL_SPEED) * score_percent;
-
 	// set initial positions
 	const bn::sprite_shape_size paddle_size{bn::sprite_items::paddle.shape_size()};
 	paddle_offset = paddle_size.width() / 2 - PADDLE_WIDTH / 2;
@@ -258,14 +260,16 @@ void game_logic()
 		has_boost = false;
 		display_text(get_canvas_pos(0.5f, 0.7f), "Press [A] to start the game");
 
+		score_percent = bn::max<bn::fixed>(player_score, ai_score) / (MAX_SCORE - 1);
+		ball_speed = lerp(MIN_BALL_SPEED, MAX_BALL_SPEED, score_percent);
+		recomp_ai_aim_offset();
+
 		if (bn::keypad::pressed(bn::keypad::key_type::A))
 		{
 			bn::sound_items::btn_select.play(1);
 
 			int angle{lerp(START_ANGLE_DEADZONE, 90 - START_ANGLE_DEADZONE, random.get_fixed(1))};
-			int sign{random.get_fixed(-1, 1) > 0 ? 1 : -1};
-
-			ball_dir = vector2::rotate_vector(bn::fixed_point(1, 0), angle * sign);
+			ball_dir = vector2::rotate_vector(bn::fixed_point(1, 0), angle * sign(random.get_fixed(-1, 1)));
 			waiting_for_input = false;
 		}
 	}
@@ -283,26 +287,29 @@ void game_logic()
 
 		// move ai
 		int score_magnitude = bn::max(player_score, ai_score);
-		bn::fixed y_target = ball_pos.y();
+		ai_y_target = ball_pos.y() + ai_aim_offset;
 
 		if (score_magnitude > DUMB_AI_THRESHOLD)
 		{
 			// try to anticipate ball
-			y_target += ball_dir.y() * ball_speed;
+			ai_y_target += ball_dir.y() * ball_speed;
+			// TODO : make this better with distance depending speed
 
 			if (score_magnitude > SMART_AI_THRESHOLD && ball_pos.x() < 0)
 			{
 				// follow player (for blocking)
-				y_target = player_pos.y();
+				ai_y_target = player_pos.y();
 			}
 		}
+		else if (ball_pos.x() < 0)
+			ai_y_target = ai_pos.y();
 
-		y_target -= ai_pos.y();
+		ai_y_target -= ai_pos.y();
 
-		if (y_target > 0)
-			ai_pos.set_y(ai_pos.y() + bn::min<bn::fixed>(y_target, PALETTE_SPEED));
-		else
-			ai_pos.set_y(ai_pos.y() + bn::max<bn::fixed>(y_target, -PALETTE_SPEED));
+		if (ai_y_target > 0)
+			ai_pos.set_y(ai_pos.y() + bn::min<bn::fixed>(ai_y_target, PALETTE_SPEED));
+		else if (ai_y_target < 0)
+			ai_pos.set_y(ai_pos.y() + bn::max<bn::fixed>(ai_y_target, -PALETTE_SPEED));
 
 		ai_pos.set_y(bn::max<bn::fixed>(bn::min<bn::fixed>(ai_pos.y(), paddle_y_limit), -paddle_y_limit));
 
@@ -330,14 +337,14 @@ void ball_collisions()
 	ball_rect.value().set_position((int)ball_pos.x(), (int)ball_pos.y());
 
 	if (ball_dir.x() < 0 && palette_rect.value().intersects(ball_rect.value()))
-		manage_ball_collision(palette_rect.value());
+		manage_ball_collision(palette_rect.value(), 1);
 
 	palette_rect.value().set_position(
 		(int)ai_pos.x() - PADDLE_WIDTH * 2 + PADDLE_TOUCH_OFFSET,
 		(int)ai_pos.y());
 
 	if (ball_dir.x() > 0 && palette_rect.value().intersects(ball_rect.value()))
-		manage_ball_collision(palette_rect.value());
+		manage_ball_collision(palette_rect.value(), -1);
 
 	if (ball_pos.y() + BALL_SIZE / 2 >= SCREEN_Y_LIMIT || ball_pos.y() - BALL_SIZE / 2 <= -SCREEN_Y_LIMIT)
 	{
@@ -364,15 +371,15 @@ void ball_collisions()
 	}
 }
 
-void manage_ball_collision(const bn::rect &rect)
+void manage_ball_collision(const bn::rect &rect, int angle_sign)
 {
-	// TODO : AI paddle collision angle is reversed
 	bn::fixed y_diff{ball_pos.y() - rect.position().y()};
 
 	// ignore invalid collisions
 	if (ball_pos.x() < rect.position().x() || y_diff > palette_rect.value().height() / 2)
 		return;
 
+	recomp_ai_aim_offset();
 	bn::sound_items::impact.play(1);
 
 	// detect boost
@@ -398,11 +405,22 @@ void manage_ball_collision(const bn::rect &rect)
 			((y_diff)-PADDLE_BOOST_THRESHOLD) /
 				(palette_rect.value().height() / 2 - PADDLE_BOOST_THRESHOLD));
 
-		ball_dir = vector2::rotate_vector(ball_dir, (int)target_angle);
+		ball_dir = vector2::rotate_vector(ball_dir, (int)target_angle * angle_sign);
 	}
 }
 
 const inline bn::fixed lerp(const bn::fixed min, const bn::fixed max, const bn::fixed delta)
 {
 	return min + ((max - min) * delta);
+}
+
+inline int sign(bn::fixed value)
+{
+	return value > 0 ? 1 : -1;
+}
+
+void recomp_ai_aim_offset()
+{
+	ai_aim_offset = lerp(MAX_AIM_OFFSET, MIN_AIM_OFFSET, score_percent) *
+					sign(random.get_fixed(-1, 1));
 }
