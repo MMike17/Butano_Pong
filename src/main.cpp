@@ -55,7 +55,6 @@ const bn::fixed SCORE_ANIM_RATIO{1 / SCORE_MODULO}; // I can't modulo with float
 const bn::sprite_font FONT(bn::sprite_items::common_fixed_8x8_font);
 
 // TODO : Fix smash goes through player
-// TODO : Fix ai palette collision rect
 
 GameState state;
 bn::vector<bn::sprite_ptr, 32> text_buffer;
@@ -358,7 +357,7 @@ void ball_collisions()
 		manage_ball_collision(palette_rect.value(), 1);
 
 	palette_rect.value().set_position(
-		(int)ai_pos.x() - PADDLE_WIDTH * 2 + PADDLE_TOUCH_OFFSET,
+		(int)ai_pos.x() - paddle_offset - PADDLE_WIDTH / 2 - PADDLE_TOUCH_OFFSET,
 		(int)ai_pos.y());
 
 	if (ball_dir.x() > 0 && palette_rect.value().intersects(ball_rect.value()))
