@@ -16,6 +16,9 @@
 namespace vector2
 {
 	bn::fixed_point rotate_vector(bn::fixed_point vector, int angle);
+	const bn::fixed_point normalize(bn::fixed_point vector);
+	const bn::fixed angle(bn::fixed_point from, bn::fixed_point to);
+	const bn::fixed dot(bn::fixed_point from, bn::fixed_point to);
 }
 
 #endif /* VECTOR2_H */
