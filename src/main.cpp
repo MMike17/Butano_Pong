@@ -49,10 +49,13 @@ const int SMART_AI_THRESHOLD{7};
 const bn::fixed BALL_BOOST_MULT{2.2f};
 const bn::fixed MAX_BALL_SPEED{2.5f};
 const bn::fixed MIN_BALL_SPEED{1.7f};
-const bn::fixed PALETTE_SPEED{1.3f};
+const bn::fixed PALETTE_SPEED{1.4f};
 const bn::fixed SCORE_MODULO{SCORE_ANIM_FLASHES / SCORE_ANIM_FLASHES * 0.5f};
 const bn::fixed SCORE_ANIM_RATIO{1 / SCORE_MODULO}; // I can't modulo with floats...but I can divide the timer by modulo
 const bn::sprite_font FONT(bn::sprite_items::common_fixed_8x8_font);
+
+// TODO : Fix smash goes through player
+// TODO : Fix ai palette collision rect
 
 GameState state;
 bn::vector<bn::sprite_ptr, 32> text_buffer;
@@ -71,6 +74,7 @@ bn::fixed ball_speed;
 bn::fixed score_percent;
 bn::fixed ai_y_target;
 bn::fixed ai_aim_offset;
+bn::fixed ai_speed;
 int paddle_offset;
 int paddle_y_limit;
 int player_score{0};
@@ -80,7 +84,6 @@ bool score_anim;
 bool is_player_point;
 bool has_boost;
 
-// TODO : Make AI feel more natural
 // TODO : Add VFX ?
 
 void init()
@@ -214,6 +217,8 @@ void intro_logic()
 	}
 }
 
+// TODO : Fix score on start ball
+
 void game_logic()
 {
 	text_buffer.clear();
@@ -288,17 +293,30 @@ void game_logic()
 		// move ai
 		int score_magnitude = bn::max(player_score, ai_score);
 		ai_y_target = ball_pos.y() + ai_aim_offset;
+		ai_speed = PALETTE_SPEED;
 
 		if (score_magnitude > DUMB_AI_THRESHOLD)
 		{
-			// try to anticipate ball
+			// simple ball anticipation
 			ai_y_target += ball_dir.y() * ball_speed;
-			// TODO : make this better with distance depending speed
 
-			if (score_magnitude > SMART_AI_THRESHOLD && ball_pos.x() < 0)
+			if (ball_pos.x() < 0)
 			{
-				// follow player (for blocking)
-				ai_y_target = player_pos.y();
+				bn::fixed distance_percent = 1 - (ball_pos.x() / (bn::display::width() / 2));
+				ai_speed = lerp(0, PALETTE_SPEED, distance_percent);
+			}
+
+			if (score_magnitude > SMART_AI_THRESHOLD)
+			{
+				if (ball_pos.x() < 0)
+				{
+					// follow player (for blocking)
+					ai_y_target = player_pos.y();
+				}
+				else
+				{
+					// TODO : Try to predict ball rebounds ?
+				}
 			}
 		}
 		else if (ball_pos.x() < 0)
@@ -307,9 +325,9 @@ void game_logic()
 		ai_y_target -= ai_pos.y();
 
 		if (ai_y_target > 0)
-			ai_pos.set_y(ai_pos.y() + bn::min<bn::fixed>(ai_y_target, PALETTE_SPEED));
+			ai_pos.set_y(ai_pos.y() + bn::min<bn::fixed>(ai_y_target, ai_speed));
 		else if (ai_y_target < 0)
-			ai_pos.set_y(ai_pos.y() + bn::max<bn::fixed>(ai_y_target, -PALETTE_SPEED));
+			ai_pos.set_y(ai_pos.y() + bn::max<bn::fixed>(ai_y_target, -ai_speed));
 
 		ai_pos.set_y(bn::max<bn::fixed>(bn::min<bn::fixed>(ai_pos.y(), paddle_y_limit), -paddle_y_limit));
 
