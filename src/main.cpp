@@ -43,7 +43,7 @@ const int MAX_ANGLE_REBOUND{70};
 const int MIN_ANGLE_REBOUND{25};
 const int MIN_AIM_OFFSET{0};
 const int MAX_AIM_OFFSET{5};
-const int START_ANGLE_DEADZONE{15};
+const int MAX_START_ANGLE{30};
 const int DUMB_AI_THRESHOLD{4};
 const int SMART_AI_THRESHOLD{7};
 const bn::fixed BALL_BOOST_MULT{2.2f};
@@ -55,6 +55,7 @@ const bn::fixed SCORE_ANIM_RATIO{1 / SCORE_MODULO}; // I can't modulo with float
 const bn::sprite_font FONT(bn::sprite_items::common_fixed_8x8_font);
 
 // TODO : Fix smash goes through player
+// TODO : Fix ai move halve on distance
 
 GameState state;
 bn::vector<bn::sprite_ptr, 32> text_buffer;
@@ -216,8 +217,6 @@ void intro_logic()
 	}
 }
 
-// TODO : Fix score on start ball
-
 void game_logic()
 {
 	text_buffer.clear();
@@ -272,7 +271,7 @@ void game_logic()
 		{
 			bn::sound_items::btn_select.play(1);
 
-			int angle{lerp(START_ANGLE_DEADZONE, 90 - START_ANGLE_DEADZONE, random.get_fixed(1))};
+			int angle{lerp(0, MAX_START_ANGLE, random.get_fixed(1))};
 			ball_dir = vector2::rotate_vector(bn::fixed_point(1, 0), angle * sign(random.get_fixed(-1, 1)));
 			waiting_for_input = false;
 		}
