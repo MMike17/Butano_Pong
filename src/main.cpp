@@ -54,7 +54,6 @@ const bn::fixed SCORE_MODULO{SCORE_ANIM_FLASHES / SCORE_ANIM_FLASHES * 0.5f};
 const bn::fixed SCORE_ANIM_RATIO{1 / SCORE_MODULO}; // I can't modulo with floats...but I can divide the timer by modulo
 const bn::sprite_font FONT(bn::sprite_items::common_fixed_8x8_font);
 
-// TODO : Fix smash goes through player
 // TODO : Fix ai move halve on distance
 
 GameState state;
@@ -329,10 +328,11 @@ void game_logic()
 
 		ai_pos.set_y(bn::max<bn::fixed>(bn::min<bn::fixed>(ai_pos.y(), paddle_y_limit), -paddle_y_limit));
 
+		// apply move
+		ball_collisions();
 		player_palette.value().set_position(player_pos);
 		ai_palette.value().set_position(ai_pos);
 		ball.value().set_position(ball_pos += ball_dir * ball_speed * (has_boost ? BALL_BOOST_MULT : 1));
-		ball_collisions();
 	}
 
 	display_text(get_canvas_pos(0.5f, 0.95f), score_display);
@@ -387,13 +387,37 @@ void ball_collisions()
 	}
 }
 
+// TODO : Fix end game error (optional not valid)
+
 void manage_ball_collision(const bn::rect &rect, int angle_sign)
 {
 	bn::fixed y_diff{ball_pos.y() - rect.position().y()};
 
 	// ignore invalid collisions
-	if (ball_pos.x() < rect.position().x() || y_diff > palette_rect.value().height() / 2)
+	if (y_diff > palette_rect.value().height() / 2)
 		return;
+
+	if (ball_pos.x() * angle_sign < rect.position().x() * angle_sign)
+	{
+		// detect collider intrusion
+		if (has_boost && ball.value().position().x() * angle_sign > rect.position().x() * angle_sign)
+		{
+			bn::fixed x_diff = (ball_pos.x() - rect.position().x()) * angle_sign;
+			bn::fixed angle = vector2::angle((ball.value().position() - ball_pos) * angle_sign,
+											 ball_pos + bn::fixed_point{angle_sign, 0});
+			bn::fixed hypoten = x_diff / bn::cos(angle);
+			bn::fixed_point inter = ball_pos + vector2::rotate_vector(
+												   bn::fixed_point{hypoten, 0},
+												   (int)angle * -angle_sign);
+
+			if (rect.contains(bn::point((int)inter.x(), (int)inter.y())))
+				ball_pos = inter + bn::point{angle_sign, 0} * (PADDLE_WIDTH - PADDLE_TOUCH_OFFSET);
+			else
+				return;
+		}
+		else
+			return;
+	}
 
 	recomp_ai_aim_offset();
 	bn::sound_items::impact.play(1);
