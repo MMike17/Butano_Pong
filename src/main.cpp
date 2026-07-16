@@ -260,7 +260,7 @@ void game_logic()
 		has_boost = false;
 		display_text(get_canvas_pos(0.5f, 0.7f), "Press [A] to start the game");
 
-		score_percent = bn::max<bn::fixed>(player_score, ai_score) / (MAX_SCORE - 1);
+		score_percent = bn::fixed{player_score} / (MAX_SCORE - 1);
 		ball_speed = lerp(MIN_BALL_SPEED, MAX_BALL_SPEED, score_percent);
 		recomp_ai_aim_offset();
 
