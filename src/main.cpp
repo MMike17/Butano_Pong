@@ -49,15 +49,15 @@ const int SMART_AI_THRESHOLD{7};
 const bn::fixed BALL_BOOST_MULT{2.2f};
 const bn::fixed MAX_BALL_SPEED{2.5f};
 const bn::fixed MIN_BALL_SPEED{1.7f};
-const bn::fixed PALETTE_SPEED{1.4f};
+const bn::fixed PADDLE_SPEED{1.4f};
 const bn::fixed SCORE_MODULO{SCORE_ANIM_FLASHES / SCORE_ANIM_FLASHES * 0.5f};
 const bn::fixed SCORE_ANIM_RATIO{1 / SCORE_MODULO}; // I can't modulo with floats...but I can divide the timer by modulo
 const bn::sprite_font FONT(bn::sprite_items::common_fixed_8x8_font);
 
 GameState state;
 bn::vector<bn::sprite_ptr, 32> text_buffer;
-bn::optional<bn::sprite_ptr> player_palette;
-bn::optional<bn::sprite_ptr> ai_palette;
+bn::optional<bn::sprite_ptr> player_paddle;
+bn::optional<bn::sprite_ptr> ai_paddle;
 bn::optional<bn::sprite_ptr> ball;
 bn::optional<bn::rect> paddle_rect;
 bn::optional<bn::rect> ball_rect;
@@ -150,8 +150,8 @@ void switch_to_state(GameState newState)
 	case GameState::Game:
 	{
 		// TODO : This crashes the game
-		player_palette.reset();
-		ai_palette.reset();
+		player_paddle.reset();
+		ai_paddle.reset();
 		ball.reset();
 		break;
 	}
@@ -205,8 +205,8 @@ void game_init()
 	paddle_y_limit = bn::display::height() / 2 - paddle_size.height() / 2;
 
 	// spawn sprites
-	player_palette = bn::sprite_items::paddle.create_sprite_optional(player_pos);
-	ai_palette = bn::sprite_items::paddle.create_sprite_optional(ai_pos);
+	player_paddle = bn::sprite_items::paddle.create_sprite_optional(player_pos);
+	ai_paddle = bn::sprite_items::paddle.create_sprite_optional(ai_pos);
 	paddle_rect = bn::rect(0, 0, PADDLE_WIDTH, paddle_size.height());
 	ball = bn::sprite_items::ball.create_sprite_optional(ball_pos);
 	ball_rect = bn::rect(0, 0, BALL_SIZE, BALL_SIZE);
@@ -251,9 +251,9 @@ void game_logic()
 			waiting_for_input = true;
 
 			player_pos.set_y(0);
-			player_palette.value().set_position(player_pos);
+			player_paddle.value().set_position(player_pos);
 			ai_pos.set_y(0);
-			ai_palette.value().set_position(ai_pos);
+			ai_paddle.value().set_position(ai_pos);
 			ball_pos = bn::fixed_point(0, 0);
 			ball_dir = bn::fixed_point(0, 0);
 			ball.value().set_position(ball_pos);
@@ -284,10 +284,10 @@ void game_logic()
 	{
 		// move player
 		if (bn::keypad::held(bn::keypad::key_type::UP))
-			player_pos.set_y(player_pos.y() - PALETTE_SPEED);
+			player_pos.set_y(player_pos.y() - PADDLE_SPEED);
 
 		if (bn::keypad::held(bn::keypad::key_type::DOWN))
-			player_pos.set_y(player_pos.y() + PALETTE_SPEED);
+			player_pos.set_y(player_pos.y() + PADDLE_SPEED);
 
 		// clamp player pos to screen
 		player_pos.set_y(bn::max<bn::fixed>(bn::min<bn::fixed>(player_pos.y(), paddle_y_limit), -paddle_y_limit));
@@ -295,7 +295,7 @@ void game_logic()
 		// move ai
 		int score_magnitude = bn::max(player_score, ai_score);
 		ai_y_target = ball_pos.y() + ai_aim_offset;
-		ai_speed = PALETTE_SPEED;
+		ai_speed = PADDLE_SPEED;
 
 		if (score_magnitude > DUMB_AI_THRESHOLD)
 		{
@@ -306,7 +306,7 @@ void game_logic()
 			{
 				bn::fixed distance_percent = -ball_pos.x() / (bn::display::width() / 2);
 				// should make square curve
-				ai_speed = lerp(PALETTE_SPEED, 0, distance_percent * distance_percent);
+				ai_speed = lerp(PADDLE_SPEED, 0, distance_percent * distance_percent);
 			}
 
 			if (score_magnitude > SMART_AI_THRESHOLD)
@@ -332,8 +332,8 @@ void game_logic()
 
 		// apply move
 		ball_collisions();
-		player_palette.value().set_position(player_pos);
-		ai_palette.value().set_position(ai_pos);
+		player_paddle.value().set_position(player_pos);
+		ai_paddle.value().set_position(ai_pos);
 		ball.value().set_position(ball_pos += ball_dir * ball_speed * (has_boost ? BALL_BOOST_MULT : 1));
 	}
 
