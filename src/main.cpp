@@ -40,7 +40,7 @@ const int SCORE_ANIM_DURATION{2};
 const int SCORE_ANIM_FLASHES{2};
 const int PADDLE_BOOST_THRESHOLD{1};
 const int MAX_ANGLE_REBOUND{70};
-const int MIN_ANGLE_REBOUND{25};
+const int MIN_ANGLE_REBOUND{15};
 const int MIN_AIM_OFFSET{0};
 const int MAX_AIM_OFFSET{5};
 const int MAX_START_ANGLE{30};
@@ -118,8 +118,12 @@ void state_update()
 		break;
 
 	case GameState::Result:
+	{
+		// BN_LOG("1");
 		text_buffer.clear();
+		// BN_LOG("2");
 		display_text(get_canvas_pos(0.5f, 0.5f), player_score == MAX_SCORE ? "Player wins !" : "AI wins !");
+		// BN_LOG("3");
 
 		if (bn::keypad::pressed(bn::keypad::key_type::A))
 		{
@@ -128,7 +132,8 @@ void state_update()
 			ai_score = 0;
 			switch_to_state(GameState::Game);
 		}
-		break;
+	}
+	break;
 
 	default:
 		BN_LOG("Game state is broken");
@@ -143,6 +148,7 @@ void switch_to_state(GameState newState)
 	{
 	case GameState::Game:
 	{
+		// TODO : This crashes the game
 		player_palette.reset();
 		ai_palette.reset();
 		ball.reset();
@@ -327,8 +333,6 @@ void game_logic()
 
 		ai_pos.set_y(bn::max<bn::fixed>(bn::min<bn::fixed>(ai_pos.y(), paddle_y_limit), -paddle_y_limit));
 
-		// TODO : Fix paddle angling
-
 		// apply move
 		ball_collisions();
 		player_palette.value().set_position(player_pos);
@@ -388,8 +392,6 @@ void ball_collisions()
 	}
 }
 
-// TODO : Fix end game error (optional not valid)
-
 void manage_ball_collision(const bn::rect &rect, int angle_sign)
 {
 	bn::fixed y_diff{ball_pos.y() - rect.position().y()};
@@ -398,7 +400,8 @@ void manage_ball_collision(const bn::rect &rect, int angle_sign)
 	if (y_diff > palette_rect.value().height() / 2)
 		return;
 
-	if (ball_pos.x() * angle_sign < rect.position().x() * angle_sign)
+	// TODO : This still doesn't work 100% of the time
+	if (ball_pos.x() * angle_sign <= rect.position().x() * angle_sign)
 	{
 		// detect collider intrusion
 		if (has_boost && ball.value().position().x() * angle_sign > rect.position().x() * angle_sign)
@@ -440,11 +443,10 @@ void manage_ball_collision(const bn::rect &rect, int angle_sign)
 	// apply paddle angle
 	if (!has_boost)
 	{
-		bn::fixed target_angle = lerp(
-			MIN_ANGLE_REBOUND,
-			MAX_ANGLE_REBOUND,
-			((y_diff)-PADDLE_BOOST_THRESHOLD) /
-				(palette_rect.value().height() / 2 - PADDLE_BOOST_THRESHOLD));
+		bn::fixed dir_sign = y_diff > 0 ? 1 : -1;
+		bn::fixed angle_percent{(y_diff * dir_sign - PADDLE_BOOST_THRESHOLD) /
+								(palette_rect.value().height() / 2 - PADDLE_BOOST_THRESHOLD)};
+		bn::fixed target_angle = lerp(MIN_ANGLE_REBOUND, MAX_ANGLE_REBOUND, angle_percent) * dir_sign;
 
 		ball_dir = vector2::rotate_vector(ball_dir, (int)target_angle * angle_sign);
 	}
