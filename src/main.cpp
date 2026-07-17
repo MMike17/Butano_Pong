@@ -297,7 +297,6 @@ void game_logic()
 		ai_y_target = ball_pos.y() + ai_aim_offset;
 		ai_speed = PALETTE_SPEED;
 
-		// TODO : Slow down ai paddle when on player side more
 		if (score_magnitude > DUMB_AI_THRESHOLD)
 		{
 			// simple ball anticipation
@@ -306,20 +305,16 @@ void game_logic()
 			if (ball_pos.x() < 0)
 			{
 				bn::fixed distance_percent = -ball_pos.x() / (bn::display::width() / 2);
-				// should make quadratic curve
+				// should make square curve
 				ai_speed = lerp(PALETTE_SPEED, 0, distance_percent * distance_percent);
 			}
 
 			if (score_magnitude > SMART_AI_THRESHOLD)
 			{
-				if (ball_pos.x() < 0)
+				if (ball_pos.x() < 0 && ball_dir.x() < 0)
 				{
 					// follow player (for blocking)
 					ai_y_target = player_pos.y();
-				}
-				else
-				{
-					// TODO : Try to predict ball rebounds ?
 				}
 			}
 		}
