@@ -2,7 +2,7 @@
 
 int get_canvas_point(bn::fixed percent, bool is_x)
 {
-	int dimention = is_x ? bn::display::width() : bn::display::height();
+	int dimention{is_x ? bn::display::width() : bn::display::height()};
 	return (int)(dimention / 2 * ((percent - 0.5f) * 2)) * (is_x ? 1 : -1);
 }
 

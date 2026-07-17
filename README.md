@@ -35,6 +35,11 @@ This is a learning project, things will be messy.
 
 ## Tribulations
 
+### Formatting
+
+- Formatting is absolutely trash
+- I have to configure it so it looks like the much more readable C#
+
 ### Includes
 
 - Always explicitely have all includes used in this file (no implicit includes through other header files)
@@ -66,6 +71,13 @@ This is a learning project, things will be messy.
 
 - for some reason, the default trigonometry operations in butano don't get you degrees
 - use `bn::degrees_` instead of the normal versions to get a usable result
+
+### Speculative collision and collider passthrough
+
+- very fast objects can go through colliders without intersecting them
+- 2 ways to fix that
+	- interpolate trajectory with x steps (have to configure this, physics solver steps ?) and check if at least one step has collision
+	- compute intersection point and check if it has collision (a lot of costly calculus)
 
 
 ## Tools ideas

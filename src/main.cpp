@@ -74,8 +74,7 @@ bn::fixed ai_aim_offset;
 bn::fixed ai_speed;
 int paddle_offset;
 int paddle_y_limit;
-// int player_score{0};
-int player_score{5};
+int player_score{0};
 int ai_score{0};
 bool waiting_for_input;
 bool score_anim;
@@ -231,13 +230,13 @@ void game_logic()
 	if (score_anim)
 	{
 		// I tried making a timer cast to bn::fixed but it looped weirdly (0 -> 2 -> -2 -> 0) type overflow ?
-		bn::fixed timer = (float)score_anim_timer.elapsed_ticks() / bn::timers::ticks_per_second();
-		bn::fixed warped_timer = timer * SCORE_ANIM_RATIO; // timer divided by modulo
-		int value = (int)((warped_timer - (warped_timer % 1)) / 1);
-		bool show_score = value % 2 == 1; // strict sin
+		bn::fixed timer{(float)score_anim_timer.elapsed_ticks() / bn::timers::ticks_per_second()};
+		bn::fixed warped_timer{timer * SCORE_ANIM_RATIO}; // timer divided by modulo
+		int value{(int)((warped_timer - (warped_timer % 1)) / 1)};
+		bool show_score{value % 2 == 1}; // strict sin
 
-		bn::string player_score_display = bn::to_string<1>(player_score);
-		bn::string ai_score_display = bn::to_string<1>(ai_score);
+		bn::string player_score_display{bn::to_string<1>(player_score)};
+		bn::string ai_score_display{bn::to_string<1>(ai_score)};
 
 		builder.str().clear();
 		builder.append_args(
@@ -259,7 +258,7 @@ void game_logic()
 			ball.value().set_position(ball_pos);
 		}
 
-		bn::sprite_palette_ptr palette = ball.value().palette();
+		bn::sprite_palette_ptr palette{ball.value().palette()};
 		palette.set_fade(bn::colors::red, 0);
 	}
 	else if (waiting_for_input)
@@ -293,7 +292,7 @@ void game_logic()
 		player_pos.set_y(bn::max<bn::fixed>(bn::min<bn::fixed>(player_pos.y(), paddle_y_limit), -paddle_y_limit));
 
 		// move ai
-		int score_magnitude = bn::max(player_score, ai_score);
+		int score_magnitude{bn::max(player_score, ai_score)};
 		ai_y_target = ball_pos.y() + ai_aim_offset;
 		ai_speed = PADDLE_SPEED;
 
@@ -304,7 +303,7 @@ void game_logic()
 
 			if (ball_pos.x() < 0)
 			{
-				bn::fixed distance_percent = -ball_pos.x() / (bn::display::width() / 2);
+				bn::fixed distance_percent{-ball_pos.x() / (bn::display::width() / 2)};
 				// should make square curve
 				ai_speed = lerp(PADDLE_SPEED, 0, distance_percent * distance_percent);
 			}
@@ -353,7 +352,7 @@ void ball_collisions()
 		(int)player_pos.x() - paddle_offset + PADDLE_WIDTH / 2 - PADDLE_TOUCH_OFFSET,
 		(int)player_pos.y());
 	ball_rect.value().set_position((int)ball_pos.x(), (int)ball_pos.y());
-	int angle_sign = sign(ball_dir.x());
+	int angle_sign{sign(ball_dir.x())};
 
 	if (angle_sign < 0 && (paddle_rect.value().intersects(ball_rect.value()) ||
 						   check_intrusion(paddle_rect.value(), angle_sign)))
@@ -394,19 +393,19 @@ void ball_collisions()
 
 bool check_intrusion(const bn::rect rect, const int angle_sign)
 {
-	bool was_in_front_paddle = ball.value().position().x() * angle_sign < rect.position().x() * angle_sign;
-	bool is_behind_paddle = ball_pos.x() * angle_sign > rect.position().x() * angle_sign;
+	bool was_in_front_paddle{ball.value().position().x() * angle_sign < rect.position().x() * angle_sign};
+	bool is_behind_paddle{ball_pos.x() * angle_sign > rect.position().x() * angle_sign};
 
 	if (has_boost && was_in_front_paddle && is_behind_paddle)
 	{
-		bn::fixed x_diff = (ball_pos.x() - rect.position().x()) * angle_sign;
-		int y_sign = sign(ball_pos.y() - ball.value().position().y());
-		bn::fixed angle = vector2::angle((ball.value().position() - ball_pos) * angle_sign,
-										 ball_pos + bn::fixed_point{angle_sign, 0});
-		bn::fixed hypoten = x_diff / bn::cos(angle);
-		bn::fixed_point inter = ball_pos + vector2::rotate_vector(
-											   bn::fixed_point{hypoten * angle_sign, 0},
-											   (int)angle * -angle_sign * y_sign);
+		bn::fixed x_diff{(ball_pos.x() - rect.position().x()) * angle_sign};
+		int y_sign{sign(ball_pos.y() - ball.value().position().y())};
+		bn::fixed angle{vector2::angle((ball.value().position() - ball_pos) * angle_sign,
+									   ball_pos + bn::fixed_point{angle_sign, 0})};
+		bn::fixed hypoten{x_diff / bn::cos(angle)};
+		bn::fixed_point inter{ball_pos + vector2::rotate_vector(
+											 bn::fixed_point{hypoten * angle_sign, 0},
+											 (int)angle * -angle_sign * y_sign)};
 
 		if (rect.contains(bn::point((int)inter.x(), (int)inter.y())))
 		{
@@ -434,7 +433,7 @@ void manage_ball_collision(const bn::rect rect, const int angle_sign)
 	// detect boost
 	has_boost = y_diff <= PADDLE_BOOST_THRESHOLD && y_diff >= -PADDLE_BOOST_THRESHOLD;
 
-	bn::sprite_palette_ptr palette = ball.value().palette();
+	bn::sprite_palette_ptr palette{ball.value().palette()};
 	palette.set_fade(bn::colors::red, has_boost ? 0.7f : 0);
 
 	// rebound + normalize
@@ -448,10 +447,10 @@ void manage_ball_collision(const bn::rect rect, const int angle_sign)
 	// apply paddle angle
 	if (!has_boost)
 	{
-		bn::fixed dir_sign = y_diff > 0 ? 1 : -1;
+		bn::fixed dir_sign{y_diff > 0 ? 1 : -1};
 		bn::fixed angle_percent{(y_diff * dir_sign - PADDLE_BOOST_THRESHOLD) /
 								(paddle_rect.value().height() / 2 - PADDLE_BOOST_THRESHOLD)};
-		bn::fixed target_angle = lerp(MIN_ANGLE_REBOUND, MAX_ANGLE_REBOUND, angle_percent) * dir_sign;
+		bn::fixed target_angle{lerp(MIN_ANGLE_REBOUND, MAX_ANGLE_REBOUND, angle_percent) * dir_sign};
 
 		ball_dir = vector2::rotate_vector(ball_dir, (int)target_angle * -angle_sign);
 	}
