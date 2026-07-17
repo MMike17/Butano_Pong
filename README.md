@@ -79,6 +79,11 @@ This is a learning project, things will be messy.
 	- interpolate trajectory with x steps (have to configure this, physics solver steps ?) and check if at least one step has collision
 	- compute intersection point and check if it has collision (a lot of costly calculus)
 
+### Sprites end of life
+
+- Not sure how I'm supposed to manage that
+	- `bn::optional<>.reset()` doesn't seem to work (I get an "invalid optional" error from the emulator)
+
 
 ## Tools ideas
 

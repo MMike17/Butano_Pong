@@ -119,11 +119,8 @@ void state_update()
 
 	case GameState::Result:
 	{
-		// BN_LOG("1");
 		text_buffer.clear();
-		// BN_LOG("2");
 		display_text(get_canvas_pos(0.5f, 0.5f), player_score == MAX_SCORE ? "Player wins !" : "AI wins !");
-		// BN_LOG("3");
 
 		if (bn::keypad::pressed(bn::keypad::key_type::A))
 		{
@@ -148,10 +145,9 @@ void switch_to_state(GameState newState)
 	{
 	case GameState::Game:
 	{
-		// TODO : This crashes the game
-		player_paddle.reset();
-		ai_paddle.reset();
-		ball.reset();
+		player_paddle.value().set_visible(false);
+		ai_paddle.value().set_visible(false);
+		ball.value().set_visible(false);
 		break;
 	}
 
@@ -204,10 +200,32 @@ void game_init()
 	paddle_y_limit = bn::display::height() / 2 - paddle_size.height() / 2;
 
 	// spawn sprites
-	player_paddle = bn::sprite_items::paddle.create_sprite_optional(player_pos);
-	ai_paddle = bn::sprite_items::paddle.create_sprite_optional(ai_pos);
+	if (!player_paddle)
+		player_paddle = bn::sprite_items::paddle.create_sprite_optional(player_pos);
+	else
+	{
+		player_paddle.value().set_visible(true);
+		player_paddle.value().set_position(player_pos);
+	}
+
+	if (!ai_paddle)
+		ai_paddle = bn::sprite_items::paddle.create_sprite_optional(ai_pos);
+	else
+	{
+		ai_paddle.value().set_visible(true);
+		ai_paddle.value().set_position(ai_pos);
+	}
+
 	paddle_rect = bn::rect(0, 0, PADDLE_WIDTH, paddle_size.height());
-	ball = bn::sprite_items::ball.create_sprite_optional(ball_pos);
+
+	if (!ball)
+		ball = bn::sprite_items::ball.create_sprite_optional(ball_pos);
+	else
+	{
+		ball.value().set_visible(true);
+		ball.value().set_position(ball_pos);
+	}
+
 	ball_rect = bn::rect(0, 0, BALL_SIZE, BALL_SIZE);
 }
 
