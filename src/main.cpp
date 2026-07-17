@@ -59,7 +59,7 @@ bn::vector<bn::sprite_ptr, 32> text_buffer;
 bn::optional<bn::sprite_ptr> player_palette;
 bn::optional<bn::sprite_ptr> ai_palette;
 bn::optional<bn::sprite_ptr> ball;
-bn::optional<bn::rect> palette_rect;
+bn::optional<bn::rect> paddle_rect;
 bn::optional<bn::rect> ball_rect;
 bn::fixed_point player_pos;
 bn::fixed_point ai_pos;
@@ -74,7 +74,8 @@ bn::fixed ai_aim_offset;
 bn::fixed ai_speed;
 int paddle_offset;
 int paddle_y_limit;
-int player_score{0};
+// int player_score{0};
+int player_score{5};
 int ai_score{0};
 bool waiting_for_input;
 bool score_anim;
@@ -206,7 +207,7 @@ void game_init()
 	// spawn sprites
 	player_palette = bn::sprite_items::paddle.create_sprite_optional(player_pos);
 	ai_palette = bn::sprite_items::paddle.create_sprite_optional(ai_pos);
-	palette_rect = bn::rect(0, 0, PADDLE_WIDTH, paddle_size.height());
+	paddle_rect = bn::rect(0, 0, PADDLE_WIDTH, paddle_size.height());
 	ball = bn::sprite_items::ball.create_sprite_optional(ball_pos);
 	ball_rect = bn::rect(0, 0, BALL_SIZE, BALL_SIZE);
 }
@@ -296,6 +297,7 @@ void game_logic()
 		ai_y_target = ball_pos.y() + ai_aim_offset;
 		ai_speed = PALETTE_SPEED;
 
+		// TODO : Slow down ai paddle when on player side more
 		if (score_magnitude > DUMB_AI_THRESHOLD)
 		{
 			// simple ball anticipation
@@ -303,9 +305,9 @@ void game_logic()
 
 			if (ball_pos.x() < 0)
 			{
-				bn::fixed distance_percent = ball_pos.x() / (bn::display::width() / 2);
+				bn::fixed distance_percent = -ball_pos.x() / (bn::display::width() / 2);
 				// should make quadratic curve
-				ai_speed = lerp(PALETTE_SPEED, 0, distance_percent * distance_percent * distance_percent);
+				ai_speed = lerp(PALETTE_SPEED, 0, distance_percent * distance_percent);
 			}
 
 			if (score_magnitude > SMART_AI_THRESHOLD)
@@ -352,20 +354,23 @@ void display_text(bn::fixed_point pos, bn::string_view text)
 
 void ball_collisions()
 {
-	palette_rect.value().set_position(
+	paddle_rect.value().set_position(
 		(int)player_pos.x() - paddle_offset + PADDLE_WIDTH / 2 - PADDLE_TOUCH_OFFSET,
 		(int)player_pos.y());
 	ball_rect.value().set_position((int)ball_pos.x(), (int)ball_pos.y());
+	int angle_sign = sign(ball_dir.x());
 
-	if (ball_dir.x() < 0 && palette_rect.value().intersects(ball_rect.value()))
-		manage_ball_collision(palette_rect.value(), 1);
+	if (angle_sign < 0 && (paddle_rect.value().intersects(ball_rect.value()) ||
+						   check_intrusion(paddle_rect.value(), angle_sign)))
+		manage_ball_collision(paddle_rect.value(), angle_sign);
 
-	palette_rect.value().set_position(
+	paddle_rect.value().set_position(
 		(int)ai_pos.x() - paddle_offset - PADDLE_WIDTH / 2 - PADDLE_TOUCH_OFFSET,
 		(int)ai_pos.y());
 
-	if (ball_dir.x() > 0 && palette_rect.value().intersects(ball_rect.value()))
-		manage_ball_collision(palette_rect.value(), -1);
+	if (angle_sign > 0 && (paddle_rect.value().intersects(ball_rect.value()) ||
+						   check_intrusion(paddle_rect.value(), angle_sign)))
+		manage_ball_collision(paddle_rect.value(), angle_sign);
 
 	if (ball_pos.y() + BALL_SIZE / 2 >= SCREEN_Y_LIMIT || ball_pos.y() - BALL_SIZE / 2 <= -SCREEN_Y_LIMIT)
 	{
@@ -392,36 +397,41 @@ void ball_collisions()
 	}
 }
 
-void manage_ball_collision(const bn::rect &rect, int angle_sign)
+bool check_intrusion(const bn::rect rect, const int angle_sign)
+{
+	bool was_in_front_paddle = ball.value().position().x() * angle_sign < rect.position().x() * angle_sign;
+	bool is_behind_paddle = ball_pos.x() * angle_sign > rect.position().x() * angle_sign;
+
+	if (has_boost && was_in_front_paddle && is_behind_paddle)
+	{
+		bn::fixed x_diff = (ball_pos.x() - rect.position().x()) * angle_sign;
+		int y_sign = sign(ball_pos.y() - ball.value().position().y());
+		bn::fixed angle = vector2::angle((ball.value().position() - ball_pos) * angle_sign,
+										 ball_pos + bn::fixed_point{angle_sign, 0});
+		bn::fixed hypoten = x_diff / bn::cos(angle);
+		bn::fixed_point inter = ball_pos + vector2::rotate_vector(
+											   bn::fixed_point{hypoten * angle_sign, 0},
+											   (int)angle * -angle_sign * y_sign);
+
+		if (rect.contains(bn::point((int)inter.x(), (int)inter.y())))
+		{
+			ball_pos = inter + bn::point{-angle_sign, 0} * (PADDLE_WIDTH - PADDLE_TOUCH_OFFSET);
+			return true;
+		}
+
+		return false;
+	}
+
+	return false;
+}
+
+void manage_ball_collision(const bn::rect rect, const int angle_sign)
 {
 	bn::fixed y_diff{ball_pos.y() - rect.position().y()};
 
 	// ignore invalid collisions
-	if (y_diff > palette_rect.value().height() / 2)
+	if (y_diff > paddle_rect.value().height() / 2)
 		return;
-
-	// TODO : This still doesn't work 100% of the time
-	if (ball_pos.x() * angle_sign <= rect.position().x() * angle_sign)
-	{
-		// detect collider intrusion
-		if (has_boost && ball.value().position().x() * angle_sign > rect.position().x() * angle_sign)
-		{
-			bn::fixed x_diff = (ball_pos.x() - rect.position().x()) * angle_sign;
-			bn::fixed angle = vector2::angle((ball.value().position() - ball_pos) * angle_sign,
-											 ball_pos + bn::fixed_point{angle_sign, 0});
-			bn::fixed hypoten = x_diff / bn::cos(angle);
-			bn::fixed_point inter = ball_pos + vector2::rotate_vector(
-												   bn::fixed_point{hypoten, 0},
-												   (int)angle * -angle_sign);
-
-			if (rect.contains(bn::point((int)inter.x(), (int)inter.y())))
-				ball_pos = inter + bn::point{angle_sign, 0} * (PADDLE_WIDTH - PADDLE_TOUCH_OFFSET);
-			else
-				return;
-		}
-		else
-			return;
-	}
 
 	recomp_ai_aim_offset();
 	bn::sound_items::impact.play(1);
@@ -445,10 +455,10 @@ void manage_ball_collision(const bn::rect &rect, int angle_sign)
 	{
 		bn::fixed dir_sign = y_diff > 0 ? 1 : -1;
 		bn::fixed angle_percent{(y_diff * dir_sign - PADDLE_BOOST_THRESHOLD) /
-								(palette_rect.value().height() / 2 - PADDLE_BOOST_THRESHOLD)};
+								(paddle_rect.value().height() / 2 - PADDLE_BOOST_THRESHOLD)};
 		bn::fixed target_angle = lerp(MIN_ANGLE_REBOUND, MAX_ANGLE_REBOUND, angle_percent) * dir_sign;
 
-		ball_dir = vector2::rotate_vector(ball_dir, (int)target_angle * angle_sign);
+		ball_dir = vector2::rotate_vector(ball_dir, (int)target_angle * -angle_sign);
 	}
 }
 
@@ -459,7 +469,7 @@ const inline bn::fixed lerp(const bn::fixed min, const bn::fixed max, const bn::
 
 inline int sign(bn::fixed value)
 {
-	return value > 0 ? 1 : -1;
+	return value == 0 ? 0 : (value > 0 ? 1 : -1);
 }
 
 void recomp_ai_aim_offset()
