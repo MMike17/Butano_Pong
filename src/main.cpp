@@ -19,6 +19,7 @@
 #include <bn_sound_items.h>
 #include <bn_sprite_palette_ptr.h>
 #include <bn_colors.h>
+#include <bn_blending.h>
 
 // custom imports
 #include "main.h"
@@ -29,6 +30,7 @@
 #include <bn_sprite_items_common_fixed_8x8_font.h>
 #include <bn_sprite_items_paddle.h>
 #include <bn_sprite_items_ball.h>
+#include <bn_sprite_items_vfx.h>
 
 const int MAX_SCORE{10};
 const int PADDLE_WIDTH{4};
@@ -52,6 +54,10 @@ const bn::fixed MIN_BALL_SPEED{1.7f};
 const bn::fixed PADDLE_SPEED{1.4f};
 const bn::fixed SCORE_MODULO{SCORE_ANIM_FLASHES / SCORE_ANIM_FLASHES * 0.5f};
 const bn::fixed SCORE_ANIM_RATIO{1 / SCORE_MODULO}; // I can't modulo with floats...but I can divide the timer by modulo
+const bn::fixed VFX_ANIM_DURATION{0.3f};
+const bn::fixed VFX_ROTATION_SPEED{1};
+const bn::fixed VFX_MAX_ANIM_SIZE{1};
+const bn::fixed VFX_FADE_DURATION{0.1f};
 const bn::sprite_font FONT(bn::sprite_items::common_fixed_8x8_font);
 
 GameState state;
@@ -59,6 +65,7 @@ bn::vector<bn::sprite_ptr, 32> text_buffer;
 bn::optional<bn::sprite_ptr> player_paddle;
 bn::optional<bn::sprite_ptr> ai_paddle;
 bn::optional<bn::sprite_ptr> ball;
+bn::optional<bn::sprite_ptr> vfx;
 bn::optional<bn::rect> paddle_rect;
 bn::optional<bn::rect> ball_rect;
 bn::fixed_point player_pos;
@@ -67,6 +74,7 @@ bn::fixed_point ball_pos;
 bn::fixed_point ball_dir;
 bn::random random;
 bn::timer score_anim_timer;
+bn::timer vfx_timer;
 bn::fixed ball_speed;
 bn::fixed score_percent;
 bn::fixed ai_y_target;
@@ -76,12 +84,11 @@ int paddle_offset;
 int paddle_y_limit;
 int player_score{0};
 int ai_score{0};
+int vfx_rot_sign;
 bool waiting_for_input;
 bool score_anim;
 bool is_player_point;
 bool has_boost;
-
-// TODO : Add VFX ?
 
 void init()
 {
@@ -227,6 +234,8 @@ void game_init()
 	}
 
 	ball_rect = bn::rect(0, 0, BALL_SIZE, BALL_SIZE);
+	vfx = bn::sprite_items::vfx.create_sprite_optional();
+	vfx.value().set_visible(false);
 }
 
 void intro_logic()
@@ -244,6 +253,27 @@ void game_logic()
 	bn::string<5> score_display;
 	bn::ostringstream builder{score_display};
 	builder.append_args(player_score, " / ", ai_score);
+
+	// vfx anim
+	bn::fixed vfx_seconds{(float)vfx_timer.elapsed_ticks() / bn::timers::ticks_per_second()};
+
+	if (vfx_seconds < VFX_ANIM_DURATION)
+	{
+		bn::fixed new_rot{vfx.value().rotation_angle() + VFX_ROTATION_SPEED};
+		new_rot > 360 ? new_rot -= 360 : (new_rot < 0 ? new_rot += 360 : 0);
+
+		vfx.value().set_rotation_angle(new_rot);
+		vfx.value().set_scale(lerp(0.1f, VFX_MAX_ANIM_SIZE, vfx_seconds / VFX_ANIM_DURATION));
+
+		if (vfx_seconds > VFX_ANIM_DURATION - VFX_FADE_DURATION)
+		{
+			bn::fixed fade_percent{bn::clamp<bn::fixed>((vfx_seconds - (VFX_ANIM_DURATION - VFX_FADE_DURATION)) / VFX_FADE_DURATION, 0, 1)};
+			vfx.value().set_blending_enabled(true);
+			bn::blending::set_transparency_alpha(1 - fade_percent);
+		}
+	}
+	else
+		vfx.value().set_visible(false);
 
 	if (score_anim)
 	{
@@ -273,6 +303,7 @@ void game_logic()
 			ai_paddle.value().set_position(ai_pos);
 			ball_pos = bn::fixed_point(0, 0);
 			ball_dir = bn::fixed_point(0, 0);
+			ball.value().set_visible(true);
 			ball.value().set_position(ball_pos);
 		}
 
@@ -295,6 +326,8 @@ void game_logic()
 			int angle{lerp(0, MAX_START_ANGLE, random.get_fixed(1))};
 			ball_dir = vector2::rotate_vector(bn::fixed_point(1, 0), angle * sign(random.get_fixed(-1, 1)));
 			waiting_for_input = false;
+
+			show_vfx(ball_pos);
 		}
 	}
 	else
@@ -386,6 +419,7 @@ void ball_collisions()
 
 	if (ball_pos.y() + BALL_SIZE / 2 >= SCREEN_Y_LIMIT || ball_pos.y() - BALL_SIZE / 2 <= -SCREEN_Y_LIMIT)
 	{
+		show_vfx(ball_pos);
 		ball_dir.set_y(-ball_dir.y());
 		bn::sound_items::impact.play(0.5f);
 	}
@@ -394,6 +428,9 @@ void ball_collisions()
 
 	if (is_player_point || ball_pos.x() < -SCREEN_X_LIMIT)
 	{
+		show_vfx(ball_pos);
+		ball.value().set_visible(false);
+
 		if (is_player_point)
 			++player_score;
 		else
@@ -439,6 +476,7 @@ bool check_intrusion(const bn::rect rect, const int angle_sign)
 
 void manage_ball_collision(const bn::rect rect, const int angle_sign)
 {
+	show_vfx(ball_pos);
 	bn::fixed y_diff{ball_pos.y() - rect.position().y()};
 
 	// ignore invalid collisions
@@ -488,4 +526,15 @@ void recomp_ai_aim_offset()
 {
 	ai_aim_offset = lerp(MAX_AIM_OFFSET, MIN_AIM_OFFSET, score_percent) *
 					sign(random.get_fixed(-1, 1));
+}
+
+void show_vfx(const bn::fixed_point pos)
+{
+	vfx.value().set_visible(true);
+	vfx.value().set_position(pos);
+	vfx.value().set_rotation_angle(random.get_int(0, 360));
+	vfx.value().set_scale(0.1f);
+	vfx_timer.restart();
+	vfx_rot_sign = sign(random.get_int(-1, 1));
+	bn::blending::set_transparency_alpha(1);
 }

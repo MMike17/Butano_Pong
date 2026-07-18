@@ -84,6 +84,19 @@ This is a learning project, things will be messy.
 - Not sure how I'm supposed to manage that
 	- `bn::optional<>.reset()` doesn't seem to work (I get an "invalid optional" error from the emulator)
 
+### bn::fixed imprecisions
+
+- `bn::fixed` is imprecise as hell, resulting in percentile calculations exceeding 1 and creating errors
+	- should I make a custom function to make sure percentiles are always in range
+
+### Documentation
+
+- Butano's documentation is severely lacking, especially when it comes to basic language support
+	- `BN_LOG()` doesn't support basic types such as `float` and `double`
+- A lot of functionalities are not documented properly, especially on how to use them / what they do
+- What the fuck is an affine or a H-blank ?
+	- am I missing basic knowledge here ?
+
 
 ## Tools ideas
 

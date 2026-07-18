@@ -31,5 +31,6 @@ bool check_intrusion(const bn::rect rect, const int angle_sign);
 const inline bn::fixed lerp(const bn::fixed min, const bn::fixed max, const bn::fixed delta);
 inline int sign(bn::fixed value);
 void recomp_ai_aim_offset();
+void show_vfx(const bn::fixed_point pos);
 
 #endif /* MAIN_H */
