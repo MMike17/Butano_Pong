@@ -185,7 +185,7 @@ void switch_to_state(GameState newState)
 void intro_init()
 {
 	text_buffer.clear();
-	display_text(get_canvas_pos(0.5f, 0.7f), "Pong");
+	display_text(get_canvas_pos(0.5f, 0.7f), "Bu-Pong");
 	display_text(get_canvas_pos(0.5f, 0.3f), "Press [start]");
 	display_text(get_canvas_pos(0.5f, 0.2f), "to start the game");
 }
